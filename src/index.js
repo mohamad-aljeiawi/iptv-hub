@@ -6,10 +6,10 @@ import { adminPassword, schemaVersion } from './db.js';
 import { createHandler } from './http.js';
 import { healthCheck, refreshStale } from './sync.js';
 import { xtreamRoutes, warm } from './xtream.js';
-import { watchRoutes } from './watch.js';
+import { playRoutes } from './play.js';
 import { apiRoutes, uiRoutes } from './api.js';
 
-export const server = http.createServer(createHandler([xtreamRoutes, watchRoutes, uiRoutes, apiRoutes]));
+export const server = http.createServer(createHandler([xtreamRoutes, playRoutes, uiRoutes, apiRoutes]));
 
 export function start() {
   server.listen(PORT, HOST, () => {

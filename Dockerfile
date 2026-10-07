@@ -1,12 +1,17 @@
 # IPTV Hub container. No npm install step: the app uses Node built-ins only.
-# Node 22.16 or newer is required (node:sqlite with FTS5); the 22 tag tracks
-# the latest 22.x release.
-FROM node:22-slim
+# Node 22.16 or newer is required (node:sqlite with FTS5). Debian trixie brings
+# ffmpeg 7.1 for in-browser playback; it lives only in this image, never on the host.
+FROM node:22-trixie-slim
+
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends ffmpeg \
+ && rm -rf /var/lib/apt/lists/*
 
 ENV NODE_ENV=production \
     HOST=0.0.0.0 \
     PORT=8080 \
-    DB=/data/catalog.db
+    DB=/data/catalog.db \
+    PLAY_DIR=/tmp/iptvhub-play
 
 WORKDIR /app
 COPY package.json ./

@@ -64,7 +64,6 @@ section h2{font-size:1.1rem;font-weight:500;margin:28px 0 12px}
 .ch .srcs{position:static;background:none;padding:0}
 .empty{color:var(--muted);padding:40px 0;max-width:46ch}
 .primary{background:var(--signal);color:var(--ink);border:0;border-radius:var(--r-sm);padding:9px 18px;cursor:pointer;font-weight:500}
-a.primary{display:inline-block;text-decoration:none;font-size:1.05rem;padding:12px 26px}
 
 dialog{background:var(--panel);color:var(--text);border:1px solid var(--line);border-radius:var(--r-lg);padding:0;width:min(960px,96vw);max-height:92vh}
 dialog::backdrop{background:rgba(5,12,20,.8)}
@@ -73,6 +72,16 @@ dialog::backdrop{background:rgba(5,12,20,.8)}
 .x{background:none;border:0;font-size:1.4rem;cursor:pointer;color:var(--muted);line-height:1}
 .dlg-body{padding:18px;overflow:auto;max-height:calc(92vh - 60px)}
 video{width:100%;aspect-ratio:16/9;background:#000;border-radius:var(--r-sm);display:block}
+.pv{background:#000;border-radius:var(--r-sm);overflow:hidden}
+.pv video{border-radius:0;cursor:pointer}
+.pv-bar{display:flex;align-items:center;gap:10px;padding:8px 12px;background:#0B1624;direction:ltr}
+.pv-bar button{background:none;border:0;color:var(--text);font-size:1.05rem;cursor:pointer;min-width:30px;padding:4px}
+.pv-bar input[type=range]{flex:1;min-width:0;accent-color:var(--signal)}
+.pv-t{font-size:.8rem;color:var(--muted);font-variant-numeric:tabular-nums;white-space:nowrap}
+.pv:fullscreen{display:flex;flex-direction:column;justify-content:center}
+.pv:fullscreen video{flex:1;min-height:0;aspect-ratio:auto}
+.live-badge{color:var(--live);font-weight:500}
+#external.hot{outline:2px solid var(--signal);outline-offset:6px;border-radius:var(--r-sm)}
 .status{min-height:1.5em;color:var(--muted);font-size:.85rem;margin:8px 0}
 .status.err{color:var(--live)}
 .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
@@ -141,15 +150,24 @@ form .full{grid-column:1/-1}
 <dialog id="player">
   <div class="dlg-head"><h3 id="pTitle"></h3><button class="x" type="button" data-close aria-label="إغلاق">×</button></div>
   <div class="dlg-body">
-    <video id="video" controls playsinline></video>
-    <!-- "Play in the browser": opens the plain-HTTP watch page (HTTPS sites only) -->
-    <a class="primary" id="watchLink" target="_blank" rel="noopener" hidden>▶ تشغيل في المتصفح</a>
+    <div class="pv" id="pv">
+      <video id="video" playsinline></video>
+      <!-- Player controls; labels are user-facing Arabic (play/pause, progress, mute, full screen) -->
+      <div class="pv-bar">
+        <button type="button" id="pvPlay" aria-label="تشغيل أو إيقاف مؤقت">▶</button>
+        <span class="pv-t" id="pvCur"></span>
+        <input type="range" id="pvSeek" min="0" max="0" step="1" value="0" aria-label="التقدم">
+        <span class="pv-t" id="pvDur"></span>
+        <button type="button" id="pvMute" aria-label="كتم الصوت">🔊</button>
+        <button type="button" id="pvFull" aria-label="ملء الشاشة">⛶</button>
+      </div>
+    </div>
     <div class="status" id="pStatus"></div>
     <h4>المصادر</h4>
     <div class="row" id="pSources"></div>
     <div id="pSeries"></div>
     <h4>تشغيل في مشغل خارجي</h4>
-    <div class="row">
+    <div class="row" id="external">
       <a class="pill" id="openAndroid" hidden>فتح بمشغل الجهاز</a>
       <button class="pill" type="button" id="dlM3u">تنزيل ملف لـ VLC</button>
       <button class="pill" type="button" id="copyLink">نسخ الرابط</button>
@@ -309,10 +327,46 @@ async function home() {
 }
 
 // ── player ──
+// The web player streams through this server (src/play.js), which picks the
+// cheapest way to make each stream playable: the file itself, or HLS that ffmpeg
+// remuxes or converts. Players such as TiviMate keep using the direct links in
+// "external player" below, which cost the server nothing.
 const video = $('#video');
-let item, srcIdx = 0, episode = null, stallTimer;
-function stop() { clearTimeout(stallTimer); video.removeAttribute('src'); video.load(); }
+let item, srcIdx = 0, episode = null, stallTimer, hls = null, sess = null, pingTimer = null, playToken = 0, dragging = false;
 function status(t, err) { const s = $('#pStatus'); s.textContent = t; s.className = 'status' + (err ? ' err' : ''); }
+
+// User-facing labels for how the server is playing the stream: as it is, new
+// container, converted audio, converted video.
+const TIER = { direct: 'تشغيل مباشر', remux: 'تحويل الحاوية', audio: 'تحويل الصوت', transcode: 'تحويل الفيديو إلى 720p' };
+
+// hls.js plays HLS in browsers without native support. Loaded from the CDN the
+// first time it is needed, pinned and integrity-checked.
+const nativeHls = video.canPlayType('application/vnd.apple.mpegurl') !== '';
+let hlsLib = null;
+const loadHls = () => hlsLib ||= new Promise((ok, bad) => {
+  const el = Object.assign(document.createElement('script'), {
+    src: 'https://cdn.jsdelivr.net/npm/hls.js@1.7.3/dist/hls.min.js',
+    integrity: 'sha384-cciJ0zi8d1uMKC2zJd7jvPY4HQt7W4ByUI/FlMkltvBi31aW61rcpVBhpmW8/NwX',
+    crossOrigin: 'anonymous',
+  });
+  el.onload = () => ok(window.Hls);
+  el.onerror = () => { hlsLib = null; bad(new Error('hls.js')); };
+  document.head.append(el);
+});
+
+function detach() {
+  clearTimeout(stallTimer);
+  if (hls) { hls.destroy(); hls = null; }
+  video.onplaying = video.onerror = null;
+  video.removeAttribute('src'); video.load();
+}
+// Ends the stream on the server as well, so its ffmpeg stops at once.
+function stop() {
+  playToken++; detach(); clearInterval(pingTimer);
+  if (sess) { fetch(`/api/play/${sess.id}/stop`, { method: 'POST', keepalive: true }).catch(() => {}); sess = null; }
+  drawBar();
+}
+addEventListener('pagehide', () => { if (sess) navigator.sendBeacon(`/api/play/${sess.id}/stop`); });
 
 async function openItem(id) {
   item = await api(`/api/item/${id}`);
@@ -333,7 +387,7 @@ $('#pSources').onclick = e => {
   srcIdx = +b.dataset.i; drawSources();
   if (item.type !== 'series' || episode) play();
 };
-// The current link, based on the item type and the selected source.
+// The direct player link for the current item and source (external players).
 function currentUrl(ext) {
   const s = item.sources[srcIdx];
   if (item.type === 'live') return xtUrl('live', item.id, ext || 'ts', s.id);
@@ -345,44 +399,119 @@ function updateExternal() {
   const a = $('#openAndroid');
   a.hidden = !url || !/Android/i.test(navigator.userAgent);
   if (url) { const u = new URL(url); a.href = `intent://${u.host}${u.pathname}${u.search}#Intent;scheme=${u.protocol.slice(0, -1)};type=video/*;end`; }
-  const w = watchUrl(), link = $('#watchLink');
-  link.hidden = !viaWatchPage || !w;
-  if (w) link.href = w;
 }
 
-// On an HTTPS page the browser blocks the providers' plain-HTTP streams, so
-// playback opens the plain-HTTP watch page instead (see src/watch.js). The video
-// still goes straight from the provider to the browser, never through this server.
-const viaWatchPage = location.protocol === 'https:';
-video.hidden = viaWatchPage;
-function watchUrl() {
-  const token = item.type === 'series' ? episode?.watch : item.watch;
-  return token ? `http://${location.host}/watch/${token}?src=${item.sources[srcIdx].id}` : null;
-}
-
-function play() {
+async function play() {
   stop(); updateExternal();
-  // User-facing: "Press 'Play in the browser' to open the player in a new tab".
-  if (viaWatchPage) return status('اضغط «تشغيل في المتصفح» لفتح المشغل في صفحة جديدة');
+  $('#external').classList.remove('hot');
+  const token = playToken, s = item.sources[srcIdx];
+  status(`جاري التحضير من ${s.server}`);
+  let r;
+  try {
+    r = await api('/api/play', { method: 'POST', body: JSON.stringify({
+      kind: item.type, id: item.type === 'series' ? episode.vid : item.id, src: s.id }) });
+  } catch (e) {
+    if (token !== playToken || e.message === 'auth') return;
+    if (e.data?.busy) return busy(e.message);
+    return failover(e.message);
+  }
+  if (token !== playToken) { fetch(`/api/play/${r.id}/stop`, { method: 'POST' }); return; }
+  sess = { ...r, base: r.start || 0 };
+  pingTimer = setInterval(() => { if (sess) fetch(`/api/play/${sess.id}/ping`, { method: 'POST' }).catch(() => {}); }, 10000);
+  status(`جاري التشغيل من ${s.server} · ${TIER[r.tier] || ''}`);
+  drawBar();
+  attach(r, token);
+}
+
+async function attach(r, token) {
+  detach();
   const s = item.sources[srcIdx];
-  status(`جاري التشغيل من ${s.server}`);
-  stallTimer = setTimeout(() => failover('المصدر لم يستجب خلال 12 ثانية'), 12000);
-  video.onplaying = () => { clearTimeout(stallTimer); status(`يعمل من ${s.server}`); };
-  video.onerror = () => failover(item.type === 'live' ? 'المتصفح لا يستطيع تشغيل هذا البث' : 'تعذر تشغيل الملف في المتصفح');
-  // Channels are requested as HLS because that is what browsers can play;
-  // movies and episodes keep their own container.
-  video.src = currentUrl(item.type === 'live' ? 'm3u8' : undefined);
+  // Converting video can take a few seconds before the first picture.
+  stallTimer = setTimeout(() => failover('المصدر لم يستجب خلال 30 ثانية'), 30000);
+  video.onplaying = () => { clearTimeout(stallTimer); status(`يعمل من ${s.server} · ${TIER[r.tier] || ''}`); };
+  video.onerror = () => failover('تعذر تشغيل هذا المصدر');
+  if (r.mode === 'direct') video.src = r.url;
+  else {
+    const Hls = await loadHls().catch(() => null);
+    if (token !== playToken) return;
+    if (Hls?.isSupported()) {
+      // Films start from the beginning of what has been converted, not its end.
+      hls = new Hls(r.live ? {} : { startPosition: 0 });
+      hls.on(Hls.Events.ERROR, (_, d) => { if (d.fatal) failover('تعذر تشغيل هذا المصدر'); });
+      hls.loadSource(r.url);
+      hls.attachMedia(video);
+    } else if (nativeHls) video.src = r.url;
+    else return failover('هذا المتصفح لا يدعم التشغيل');
+  }
   video.play().catch(() => {});
+}
+
+// The server is at its limit: point at the external players instead.
+function busy(msg) {
+  stop();
+  status(`${msg}. شغّله الآن في مشغل خارجي من الأزرار بالأسفل.`, true);
+  $('#external').classList.add('hot');
 }
 function failover(reason) {
   if (!$('#player').open) return;
-  clearTimeout(stallTimer);
   if (srcIdx + 1 < item.sources.length) {
     srcIdx++; drawSources(); status(`${reason}، جاري التبديل إلى ${item.sources[srcIdx].server}`); setTimeout(play, 400);
   } else {
     stop();
     status(`${reason}. استخدم مشغلاً خارجياً من الأزرار بالأسفل.`, true);
+    $('#external').classList.add('hot');
   }
+}
+
+// ── player controls ──
+// Converted films arrive a little at a time, so the bar shows the film's full
+// length from the server and seeking past what is ready restarts the conversion
+// there. Times on screen are sess.base (where the conversion started) plus the
+// position inside the current stream.
+const fmt = t => {
+  t = Math.max(0, Math.floor(t || 0));
+  const h = Math.floor(t / 3600), m = Math.floor(t % 3600 / 60), s = t % 60;
+  return (h ? h + ':' + String(m).padStart(2, '0') : m) + ':' + String(s).padStart(2, '0');
+};
+const absNow = () => (sess?.base || 0) + (video.currentTime || 0);
+const total = () => sess?.duration || (Number.isFinite(video.duration) ? video.duration : 0);
+function drawBar() {
+  const live = !!sess?.live, seek = $('#pvSeek');
+  seek.hidden = live || !total();
+  $('#pvPlay').textContent = video.paused ? '▶' : '❚❚';
+  $('#pvMute').textContent = video.muted ? '🔇' : '🔊';
+  $('#pvCur').textContent = live || !sess ? '' : fmt(absNow());
+  $('#pvDur').innerHTML = live ? '<span class="live-badge">● مباشر</span>' : sess && total() ? fmt(total()) : '';
+  if (!dragging) { seek.max = Math.floor(total()); seek.value = Math.floor(absNow()); }
+}
+for (const ev of ['timeupdate', 'play', 'pause', 'volumechange', 'durationchange', 'loadedmetadata']) video.addEventListener(ev, drawBar);
+const togglePlay = () => { if (sess) video.paused ? video.play().catch(() => {}) : video.pause(); };
+$('#pvPlay').onclick = togglePlay;
+video.addEventListener('click', togglePlay);
+$('#pvMute').onclick = () => { video.muted = !video.muted; };
+$('#pvFull').onclick = () => {
+  if (document.fullscreenElement) return document.exitFullscreen();
+  const el = $('#pv');
+  if (el.requestFullscreen) el.requestFullscreen(); else video.webkitEnterFullscreen?.();
+};
+$('#pvSeek').addEventListener('input', e => { dragging = true; $('#pvCur').textContent = fmt(+e.target.value); });
+$('#pvSeek').addEventListener('change', e => { dragging = false; seekTo(+e.target.value); });
+
+async function seekTo(t) {
+  if (!sess || sess.live) return;
+  if (sess.mode === 'direct') { video.currentTime = t; return; }
+  const rel = t - sess.base;
+  const ready = video.seekable.length ? video.seekable.end(video.seekable.length - 1) : 0;
+  if (rel >= 0 && rel <= ready - 2) { video.currentTime = rel; return; }
+  // Not converted yet, or before where this conversion began: restart there.
+  status('جاري الانتقال');
+  const token = playToken;
+  try {
+    const r = await api(`/api/play/${sess.id}/seek`, { method: 'POST', body: JSON.stringify({ t }) });
+    if (token !== playToken) return;
+    sess = { ...sess, ...r, base: r.start };
+    attach(r, token);
+  } catch (e) { if (token === playToken) failover(e.message); }
 }
 
 async function loadEpisodes() {

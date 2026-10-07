@@ -25,10 +25,20 @@ interface loads them from a third party when a browser opens it.
 | Resource | Loaded from | Licence | Copyright |
 |---|---|---|---|
 | Readex Pro font | Google Fonts (`fonts.googleapis.com`) | SIL Open Font License 1.1 | Copyright 2019 The Readex Pro Project Authors |
-| hls.js 1.7.3 (live channels on the watch page, only in browsers without native HLS) | jsDelivr (`cdn.jsdelivr.net`), pinned with a Subresource Integrity hash | Apache License 2.0 | Copyright (c) 2017 Dailymotion |
+| hls.js 1.7.3 (the web player, in browsers without native HLS) | jsDelivr (`cdn.jsdelivr.net`), pinned with a Subresource Integrity hash | Apache License 2.0 | Copyright (c) 2017 Dailymotion |
 
 If you self-host the font instead of loading it from Google Fonts, the OFL requires its
 licence text to travel with the font files.
+
+## ffmpeg in the Docker image
+
+The `Dockerfile` installs Debian's `ffmpeg` package (7.1 in Debian 13) when the image is
+built. IPTV Hub runs it as a separate program and does not link to it, so the project's
+MIT licence is unaffected. Debian builds ffmpeg with GPL components such as libx264, so
+the ffmpeg inside a built image is under the GPL (version 2 or later). If you
+redistribute a built image, the GPL's terms apply to that ffmpeg: Debian publishes the
+corresponding source, and your obligations are the same as for redistributing the
+Debian package.
 
 ## Content
 

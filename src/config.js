@@ -1,6 +1,7 @@
 // Configuration: everything is read from environment variables.
 // See .env.example for a description of every setting.
 import fs from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -32,6 +33,14 @@ export const UA = process.env.UA || 'Mozilla/5.0';
 export const PUBLIC_URL = (process.env.PUBLIC_URL || '').replace(/\/+$/, '');
 export const DB_PATH = process.env.DB || path.join(ROOT, 'catalog.db');
 export const ADMIN_TOKEN_ENV = process.env.ADMIN_TOKEN || '';
+
+// In-browser playback through ffmpeg (src/play.js). Players never use this path.
+export const PLAY_MAX_VIEWERS = num(process.env.PLAY_MAX_VIEWERS, 5);       // browser streams at once
+export const PLAY_MAX_TRANSCODES = num(process.env.PLAY_MAX_TRANSCODES, 3); // full video re-encodes at once
+export const PLAY_MAX_HEIGHT = num(process.env.PLAY_MAX_HEIGHT, 720);       // cap for re-encoded video
+export const PLAY_DIR = process.env.PLAY_DIR || path.join(os.tmpdir(), 'iptvhub-play');
+export const FFMPEG = process.env.FFMPEG || 'ffmpeg';
+export const FFPROBE = process.env.FFPROBE || 'ffprobe';
 
 export const UNCAT = 999999;                            // id of the "uncategorised" bucket
 export const UNCAT_NAME = 'أخرى';                       // user-facing: category label shown in players

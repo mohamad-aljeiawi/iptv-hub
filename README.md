@@ -1,8 +1,10 @@
 # IPTV Hub
 
 A virtual Xtream Codes server. Point it at several IPTV providers you already pay for, and
-your players see **one** catalogue with no duplicates. Every stream request is answered
-with a 302 redirect to the upstream provider, so video never passes through your server.
+your players see **one** catalogue with no duplicates. Every player stream request is
+answered with a 302 redirect to the upstream provider, so player video never passes
+through your server. The web interface can also play in the browser, through a capped,
+on-demand ffmpeg pipeline.
 
 [![Tests](https://github.com/mohamad-aljeiawi/iptv-hub/actions/workflows/test.yml/badge.svg)](https://github.com/mohamad-aljeiawi/iptv-hub/actions/workflows/test.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
@@ -71,19 +73,27 @@ healthy servers first, then fastest to respond.
 - **Episodes:** merged across all servers, so an episode missing from one server is fetched from another.
 - **Dead servers:** health-checked every 5 minutes and excluded until they come back.
 
-**Close to zero bandwidth.** The server handles metadata and redirects only. With the
-119,858-item catalogue above loaded and every player listing pre-built, the process sits
-at about 210 MB of RAM.
+**Zero bandwidth for players.** For TiviMate, Smarters and VLC the server handles
+metadata and redirects only. With the 119,858-item catalogue above loaded and every
+player listing pre-built, the process sits at about 210 MB of RAM.
+
+**Plays in the browser too, by the cheapest path.** Browsers cannot play most IPTV
+streams as they are, so the web player probes each stream with ffprobe and does the
+least work that makes it playable: the file as it is, a container swap, an audio
+conversion, or (only for HEVC and the like) a 720p re-encode. See
+[Playing in the browser](#playing-in-the-browser).
 
 **Zero npm dependencies.** Node.js built-ins only (`node:sqlite`, `node:test`, `fetch`).
+In-browser playback also needs ffmpeg, which the Docker image includes.
 
 ## What it does not do
 
 - **It ships no content.** No channels, no playlists, no provider accounts. It only
   merges Xtream accounts you already have.
-- **It does not restream or transcode.** Players connect straight to the upstream
-  provider. If you need the video to go through your server (to hide upstream
-  credentials, or to share one upstream connection among several viewers), you want a
+- **It does not restream to players.** Players connect straight to the upstream
+  provider; only the web player streams through the server, for a handful of viewers at
+  a time. If you need all video to go through your server (to hide upstream
+  credentials, or to share one upstream connection among many viewers), you want a
   restreaming proxy such as [Threadfin](https://github.com/Threadfin/Threadfin) instead.
 - **It does not record.** No DVR and no catch-up; `tv_archive` is always reported as 0.
 - **It is not a reseller panel.** Local users have a username, password, device count
@@ -198,27 +208,44 @@ cross-protocol redirects: if the playlist URL is `https` and the upstream stream
 `http`, playback stops. The web interface itself redirects to HTTPS as normal. That is
 why TiviMate works on both `http://iptv.example.com` and `https://iptv.example.com`.
 
-### Playing in the browser without using your bandwidth
+### Playing in the browser
 
-A browser has the same problem in a stricter form: an HTTPS page is not allowed to
-play an `http://` stream at all (Chrome rewrites the URL to `https://` and the
-provider refuses it). So on an HTTPS site, "play in the browser" opens a small
-**plain-HTTP watch page** at `/watch/...` in a new tab. Its video gets the same 302
-players get, so the stream goes straight from the provider to the browser and never
-through your server.
+Browsers are pickier than players. They cannot play MPEG-TS channels, most MKV files,
+HEVC video or AC3 audio, and an HTTPS page may not load a provider's plain-HTTP stream
+at all. So the web player streams through the server, and the server does the least
+work that makes each stream playable. It probes the stream once with ffprobe (cached
+for a week for films, ten minutes for channels) and picks:
 
-The watch page does not use your password or login cookie. Its link carries a signed
-token for that one item, valid for 12 hours, and it stops working as soon as the user
-is disabled or expires.
+| Stream | What the server does | Cost |
+|---|---|---|
+| MP4 with H.264 and AAC/MP3 | Relays the file as it is, seeking included | Bandwidth only |
+| H.264 with AAC/MP3 in MKV, TS or a live channel | Copies both into HLS (`-c copy`) | Bandwidth, almost no CPU |
+| H.264 with AC3, EAC3, DTS... | Copies the video, converts the audio to AAC | Bandwidth, little CPU |
+| HEVC, 10-bit H.264, MPEG-2... | Re-encodes to H.264, at most 720p, `veryfast` | Bandwidth and about a core |
 
-What plays depends on the browser and the file, not on IPTV Hub:
+The rules that keep this cheap and polite to providers:
 
-| Content | Plays in the browser? |
-|---|---|
-| Movies and episodes in MP4 (H.264/AAC) | Yes |
-| MKV, HEVC, or AC3/EAC3 audio | Usually not: browsers cannot decode them. Use the external-player buttons |
-| Live channels in Safari, on iPhone and Android | Yes, natively |
-| Live channels in desktop Chrome and Firefox | Yes if the provider sends CORS headers (`Access-Control-Allow-Origin`), through [hls.js](https://github.com/video-dev/hls.js) loaded from jsDelivr |
+- **One upstream connection per stream.** Browsers and ffmpeg both like to open a second
+  connection when seeking, which providers that allow one connection per account
+  refuse. Neither connects to the provider directly: everything goes through one relay
+  per session, which closes the old connection before opening a new one.
+- **Limits.** At most 5 browser viewers and 3 re-encodes at once (`PLAY_MAX_VIEWERS`,
+  `PLAY_MAX_TRANSCODES`). Over the limit, the player shows the external-player buttons
+  instead.
+- **Nothing runs for nobody.** ffmpeg is killed when the viewer stops, closes the
+  player or the tab, or stops sending its 10-second heartbeat for 30 seconds. Films are
+  read at twice real time, so a paused film does not pull the whole file.
+- **Seeking anywhere.** The progress bar shows the whole film. Seeking past what has
+  been converted restarts ffmpeg at that point.
+
+Measured on the 6-core VPS this runs on, with the exact re-encode settings: one 1080p
+HEVC film converts at 4x real time, and three at once at 1.8x each. A deliberately
+extreme source (heavy noise, 37 Mbit/s) drops to 0.6x each with three at once, so very
+grainy films can stutter when the re-encode slots are all in use; lower
+`PLAY_MAX_TRANSCODES` if that happens.
+
+The "external player" buttons stay under every title. They use the normal player links,
+which cost the server nothing.
 
 ## Running locally
 
@@ -232,6 +259,10 @@ npm start                 # or: node --no-warnings src/index.js
 
 The admin password is printed to the terminal. Open `http://localhost:8080`,
 log in as `admin`, then add your providers and users from the settings tab.
+
+In-browser playback needs `ffmpeg` and `ffprobe` on the `PATH` (the Docker image has
+them). Without them everything else works, and the web player points to the
+external-player buttons instead.
 
 **No server of your own?** `cloudflared tunnel --url http://localhost:8080` gives you a
 temporary public URL immediately. Video does not pass through Cloudflare, because it is
@@ -260,6 +291,9 @@ All optional and documented in [`.env.example`](.env.example):
 | `SYNC_HOURS` | `6` | How often each provider's catalogue is re-fetched |
 | `HEALTH_MIN` | `5` | How often providers are health-checked (drives failover) |
 | `UA` | `Mozilla/5.0` | User-Agent sent upstream |
+| `PLAY_MAX_VIEWERS` | `5` | Browser streams at once; more viewers get the external-player buttons |
+| `PLAY_MAX_TRANSCODES` | `3` | Full video re-encodes at once (HEVC and the like) |
+| `PLAY_MAX_HEIGHT` | `720` | Height cap for re-encoded video |
 
 The real `.env` holds your admin password and is never committed.
 
@@ -272,19 +306,22 @@ The real `.env` holds your admin password and is never committed.
 | A local user's device count is reported to players but not enforced | Each provider's own `max_connections` still applies upstream |
 | The "did you mean" fallback can pick an unrelated word when nothing really matches. On the 119,858-item catalogue, `بي ان سبورت` was "corrected" to `بي ان سوره`, because the providers only spell that channel in Latin script | Search for the spelling the provider uses (`bein`) |
 | EPG comes from the provider that carries the most channels, so channels that exist only on another provider may have no guide | None yet |
-| In-browser playback depends on the file and the provider: MKV/HEVC/AC3 do not decode in browsers, and live channels in desktop Chrome or Firefox need the provider to send CORS headers ([details](#playing-in-the-browser-without-using-your-bandwidth)) | Use the "open in device player", VLC download or copy-link buttons |
+| In-browser playback costs the server bandwidth, and CPU when re-encoding; it is capped at 5 viewers and 3 re-encodes ([details](#playing-in-the-browser)) | Players and the external-player buttons cost nothing; raise or lower the caps in `.env` |
+| Seeking into a part of a converted film that is not ready yet restarts the conversion there, which takes a few seconds | None needed; seeking back inside what is ready is instant |
 | The installer targets apt-based systems (Ubuntu 22.04/24.04, Debian 12) | On other distributions, run `npm start` under your own service manager and proxy |
 
 ## Development
 
 ```bash
 npm run dev     # auto-reload plus two mock Xtream servers ready to add
-npm test        # name cleaning, merging, search and 302 redirect tests
+npm test        # name cleaning, merging, search, redirects and in-browser playback
 npm run mocks   # just the mock servers
 ```
 
 The tests use throwaway databases and local mock servers. They need no network access
-and no provider account.
+and no provider account. The playback tests generate their own test videos with
+ffmpeg and are skipped when ffmpeg is not installed; CI runs them inside the Docker
+image.
 
 ### Project layout
 
@@ -298,6 +335,7 @@ src/
   search.js     search engine
   resolve.js    source selection, failover and 302 URL building
   xtream.js     the Xtream API for players
+  play.js       in-browser playback: ffprobe, ffmpeg tiers, sessions and limits
   api.js        web UI and admin API
   http.js       HTTP helpers, router and response cache
 public/         the web interface (one HTML file, no build step)
@@ -307,7 +345,7 @@ test/           mock-xtream.js plus node:test suites
 ```
 
 Module dependencies flow one way, with no cycles:
-`config -> db -> normalize/http -> sync -> resolve -> xtream/watch -> api -> index`.
+`config -> db -> normalize/http -> sync -> resolve -> xtream/play -> api -> index`.
 
 ### Migrations
 

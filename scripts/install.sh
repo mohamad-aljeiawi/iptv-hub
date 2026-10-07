@@ -359,10 +359,8 @@ ${C}<VirtualHost *:80>
     ProxyPass        /live/   http://127.0.0.1:$PORT/live/
     ProxyPass        /movie/  http://127.0.0.1:$PORT/movie/
     ProxyPass        /series/ http://127.0.0.1:$PORT/series/
-    ProxyPass        /watch/  http://127.0.0.1:$PORT/watch/
-    ProxyPass        /w/      http://127.0.0.1:$PORT/w/
     RewriteEngine On
-    RewriteCond %{REQUEST_URI} !^/(player_api\.php|get\.php|xmltv\.php|live/|movie/|series/|watch/|w/)
+    RewriteCond %{REQUEST_URI} !^/(player_api\.php|get\.php|xmltv\.php|live/|movie/|series/)
     RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [R=301,L]
 </VirtualHost>
 
@@ -389,7 +387,7 @@ http:
       service: iptv-hub
       tls: { certResolver: le }
     iptv-hub-http:
-      rule: "Host(\`$DOMAIN\`) && (PathPrefix(\`/live/\`) || PathPrefix(\`/movie/\`) || PathPrefix(\`/series/\`) || PathPrefix(\`/watch/\`) || PathPrefix(\`/w/\`) || Path(\`/player_api.php\`) || Path(\`/get.php\`) || Path(\`/xmltv.php\`))"
+      rule: "Host(\`$DOMAIN\`) && (PathPrefix(\`/live/\`) || PathPrefix(\`/movie/\`) || PathPrefix(\`/series/\`) || Path(\`/player_api.php\`) || Path(\`/get.php\`) || Path(\`/xmltv.php\`))"
       entryPoints: [web]
       service: iptv-hub          # deliberately no https redirect middleware
   services:

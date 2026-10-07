@@ -5,7 +5,7 @@
 # (ExoPlayer-based ones) refuse a cross-protocol redirect from https to an
 # http stream URL.
 http://__DOMAIN__ {
-	@player path /player_api.php /panel_api.php /get.php /xmltv.php /live/* /movie/* /series/* /watch/* /w/*
+	@player path /player_api.php /panel_api.php /get.php /xmltv.php /live/* /movie/* /series/*
 	handle @player {
 		reverse_proxy 127.0.0.1:__PORT__
 	}

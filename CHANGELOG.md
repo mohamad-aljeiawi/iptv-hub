@@ -7,6 +7,39 @@ project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [2.3.0] - 2026-10-07
+
+### Changed
+
+- In-browser playback now streams through the server with ffmpeg, by the cheapest path
+  that works for each stream: the file as it is (MP4 with H.264 and AAC/MP3), a copy
+  into HLS (other containers and live channels), an audio-only conversion to AAC (AC3,
+  EAC3, DTS), or a re-encode to H.264 capped at 720p (HEVC and other video browsers
+  cannot decode). The plain-HTTP watch page from 2.2.0 is gone; the player works inside
+  the HTTPS site again.
+- The web player has its own controls: the progress bar spans the whole film, and
+  seeking past what has been converted restarts the conversion there.
+- The Docker image is based on `node:22-trixie-slim` and includes ffmpeg 7.1. Nothing is
+  installed on the host. `compose.yml` runs an init process and allows 3 GB of memory.
+
+### Added
+
+- Exactly one upstream connection per browser stream: browsers and ffmpeg read through
+  a per-session relay that closes the old connection before opening a new one, so
+  providers that allow one connection per account keep working.
+- Limits: 5 browser viewers and 3 re-encodes at once (`PLAY_MAX_VIEWERS`,
+  `PLAY_MAX_TRANSCODES`, `PLAY_MAX_HEIGHT`). Over the limit, the player points to the
+  external-player buttons, which stay under every title.
+- ffmpeg is killed as soon as the viewer stops, closes the player or the tab, or misses
+  heartbeats for 30 seconds.
+- CI runs the whole test suite inside the Docker image, so the playback tests run with a
+  real ffmpeg.
+
+### Removed
+
+- The `/watch/` and `/w/` pages and their plain-HTTP exceptions in the nginx, Caddy,
+  Apache and Traefik configs.
+
 ## [2.2.0] - 2026-10-07
 
 ### Added
@@ -80,7 +113,8 @@ release splits it into modules and adds an installer.
   could not run the app: before 22.13 `node:sqlite` needs a flag, and before 22.16 the
   bundled SQLite has no FTS5.
 
-[Unreleased]: https://github.com/mohamad-aljeiawi/iptv-hub/compare/v2.2.0...HEAD
+[Unreleased]: https://github.com/mohamad-aljeiawi/iptv-hub/compare/v2.3.0...HEAD
+[2.3.0]: https://github.com/mohamad-aljeiawi/iptv-hub/compare/v2.2.0...v2.3.0
 [2.2.0]: https://github.com/mohamad-aljeiawi/iptv-hub/compare/v2.1.0...v2.2.0
 [2.1.0]: https://github.com/mohamad-aljeiawi/iptv-hub/compare/v2.0.0...v2.1.0
 [2.0.0]: https://github.com/mohamad-aljeiawi/iptv-hub/releases/tag/v2.0.0

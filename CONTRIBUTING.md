@@ -56,9 +56,12 @@ that defeats de-duplication, add the raw names to `test/normalize.test.js` and f
 
 ## Things that will be declined
 
-- **Restreaming, transcoding or proxying video.** The 302 redirect is the design: it is
-  why the server needs almost no bandwidth and runs next to other services. A pull
-  request that routes video through the server changes what the project is.
+- **Routing player traffic through the server.** The 302 redirect is the design for
+  TiviMate, Smarters and every other player: it is why the server needs almost no
+  bandwidth. Only the web player streams through the server, by the cheapest tier that
+  works and within the viewer and re-encode caps. Changes there must keep three
+  properties: one upstream connection per stream, ffmpeg killed when the viewer leaves,
+  and no re-encode when a container swap or an audio conversion is enough.
 - **npm dependencies.** Node's built-ins cover HTTP, SQLite, tests and `fetch`. A
   dependency has to replace something genuinely hard to write, and so far nothing has.
 - **A build step for the web interface.** `public/index.html` is served as it is.
@@ -76,7 +79,7 @@ that defeats de-duplication, add the raw names to `test/normalize.test.js` and f
   A new user-facing message goes next to the existing ones, with an English comment
   saying what it is.
 - **Module dependencies flow one way**, with no cycles:
-  `config -> db -> normalize/http -> sync -> resolve -> xtream/watch -> api -> index`.
+  `config -> db -> normalize/http -> sync -> resolve -> xtream/play -> api -> index`.
   `http.js` must not import a feature module; use the `onClear()` hook instead.
 - **Migrations are append-only.** Add a new function at the end of `MIGRATIONS` in
   `src/db.js`. Never edit one that has shipped, because existing databases have already

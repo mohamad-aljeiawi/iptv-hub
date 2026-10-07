@@ -12,7 +12,6 @@ import { xt, scheduleSync, down, syncing } from './sync.js';
 import { ranked } from './resolve.js';
 import { search, COLS } from './search.js';
 import { mergedSeries } from './xtream.js';
-import { watchToken } from './watch.js';
 
 const publicServer = s => ({ id: s.id, name: s.name, host: new URL(s.url).host, status: s.status, exp_date: s.exp_date,
   max_conn: s.max_conn, latency: s.latency, last_sync: s.last_sync, error: s.error, down: down.has(s.id), syncing: syncing.has(s.id),
@@ -107,7 +106,7 @@ export async function apiRoutes(ctx) {
     if (!item) return send(req, res, 404, { error: 'غير موجود' }), true;
     const sources = ranked(item.id).map(s => ({ id: s.id, server: s.server, quality: s.quality, ext: s.ext, down: down.has(s.server_id) || !!s.error }));
     return send(req, res, 200, { id: item.id, type: item.type, title: item.title, year: item.year, rating: item.rating,
-      img: item.poster ? `/img/${item.id}` : null, sources, watch: watchToken(item.type, item.id, sess.username) }), true;
+      img: item.poster ? `/img/${item.id}` : null, sources }), true;
   }
 
   if ((m = p.match(/^\/api\/series\/(\d+)$/))) {
@@ -116,8 +115,7 @@ export async function apiRoutes(ctx) {
     const seasons = new Map();
     for (const e of d.eps) {
       if (!seasons.has(e._season)) seasons.set(e._season, []);
-      seasons.get(e._season).push({ vid: e._vid, num: e._num, title: e.title || '', plot: e.info?.plot || '', duration: e.info?.duration || '',
-        watch: watchToken('series', e._vid, sess.username) });
+      seasons.get(e._season).push({ vid: e._vid, num: e._num, title: e.title || '', plot: e.info?.plot || '', duration: e.info?.duration || '' });
     }
     return send(req, res, 200, { plot: d.primary.info?.plot || '', seasons: [...seasons].map(([season, episodes]) => ({ season, episodes })) }), true;
   }

@@ -112,7 +112,7 @@ export async function epgProxy(action, itemId, limit) {
 }
 
 // ───────────────────────── routes ─────────────────────────
-const RESERVED = new Set(['api', 'img', 'live', 'movie', 'series', 'w', 'watch']);
+const RESERVED = new Set(['api', 'img', 'live', 'movie', 'series', 'play']);
 
 export async function xtreamRoutes({ req, res, path: p, qp }) {
   if (p === '/player_api.php' || p === '/panel_api.php') {
