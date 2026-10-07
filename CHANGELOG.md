@@ -7,6 +7,24 @@ project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [2.1.0] - 2026-10-07
+
+### Added
+
+- Docker support: a `Dockerfile` and `compose.yml`. The container listens on
+  `127.0.0.1` only and keeps its database in a named volume.
+- `deploy.sh`: deploys and updates the Docker setup behind nginx with a Let's Encrypt
+  certificate. Asks only for the domain and email, checks DNS first, rolls back a
+  rejected nginx config, verifies certificate renewal, backs up before every update and
+  daily, and can import an existing database on the first run.
+
+### Security
+
+- The in-app login limit could be bypassed behind nginx by sending a different
+  `X-Forwarded-For` value with each attempt, because it trusted the first entry, which
+  the client controls. It now uses the address the proxy itself appended, and ignores
+  the header on direct connections. nginx's own `limit_req` was not affected.
+
 ## [2.0.0] - 2026-10-07
 
 First public release. The earlier, private version was a single `server.js`; this
@@ -45,5 +63,6 @@ release splits it into modules and adds an installer.
   could not run the app: before 22.13 `node:sqlite` needs a flag, and before 22.16 the
   bundled SQLite has no FTS5.
 
-[Unreleased]: https://github.com/mohamad-aljeiawi/iptv-hub/compare/v2.0.0...HEAD
+[Unreleased]: https://github.com/mohamad-aljeiawi/iptv-hub/compare/v2.1.0...HEAD
+[2.1.0]: https://github.com/mohamad-aljeiawi/iptv-hub/compare/v2.0.0...v2.1.0
 [2.0.0]: https://github.com/mohamad-aljeiawi/iptv-hub/releases/tag/v2.0.0

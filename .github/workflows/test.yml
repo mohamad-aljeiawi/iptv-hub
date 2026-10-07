@@ -39,4 +39,20 @@ jobs:
       - name: Lint shell scripts
         run: |
           shellcheck --version
-          shellcheck --severity=warning install.sh scripts/install.sh scripts/iptvhub
+          shellcheck --severity=warning install.sh deploy.sh scripts/install.sh scripts/iptvhub
+
+  docker:
+    name: Docker image
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Validate compose.yml
+        run: docker compose config --quiet
+      - name: Build
+        run: docker build -t iptv-hub:ci .
+      - name: Smoke test
+        run: |
+          docker run -d --name ci -p 127.0.0.1:18000:8080 -e ADMIN_TOKEN=ci iptv-hub:ci
+          for i in $(seq 1 30); do curl -fsS -o /dev/null http://127.0.0.1:18000/player_api.php && break; sleep 1; done
+          curl -fsS "http://127.0.0.1:18000/player_api.php?username=admin&password=ci" | grep -q '"auth":1'
+          docker logs ci

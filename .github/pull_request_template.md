@@ -5,7 +5,7 @@
 ## Checklist
 
 - [ ] `npm test` passes
-- [ ] If shell scripts changed: `shellcheck --severity=warning install.sh scripts/install.sh scripts/iptvhub` passes
+- [ ] If shell scripts changed: `shellcheck --severity=warning install.sh deploy.sh scripts/install.sh scripts/iptvhub` passes
 - [ ] No new npm dependencies, and no build step
 - [ ] Schema changes are a new migration appended to `MIGRATIONS`, not an edit to an existing one
 - [ ] Comments, logs and CLI output are in English; new Arabic UI copy has an English comment

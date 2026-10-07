@@ -1,0 +1,35 @@
+# IPTV Hub with Docker Compose. deploy.sh drives this on a server, but it also
+# works on its own: `docker compose up -d --build`, then put a reverse proxy in
+# front of 127.0.0.1:18000.
+#
+# Values below come from the environment or from a .env file next to this one
+# (never committed). See .env.example for what each setting does.
+services:
+  iptv-hub:
+    build: .
+    image: iptv-hub:local
+    container_name: iptv-hub
+    restart: unless-stopped
+    ports:
+      # Localhost only: Docker publishes ports past UFW, so never drop 127.0.0.1.
+      - "127.0.0.1:${IPTVHUB_PORT:-18000}:8080"
+    environment:
+      ADMIN_TOKEN: ${ADMIN_TOKEN:-}
+      PUBLIC_URL: ${PUBLIC_URL:-}
+      SYNC_HOURS: ${SYNC_HOURS:-6}
+      HEALTH_MIN: ${HEALTH_MIN:-5}
+      UA: ${UA:-Mozilla/5.0}
+    volumes:
+      - data:/data
+      - ${IPTVHUB_BACKUP_DIR:-./backups}:/backups
+    mem_limit: 1g
+    stop_grace_period: 20s
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "3"
+
+volumes:
+  data:
+    name: iptv-hub-data

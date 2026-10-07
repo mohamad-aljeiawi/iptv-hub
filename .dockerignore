@@ -1,0 +1,14 @@
+# Only package.json, src/ and public/ are copied into the image; this keeps the
+# build context small and makes sure no database or .env is ever sent to it.
+.git
+.github
+.env
+.env.*
+*.db
+*.db-shm
+*.db-wal
+*.db-journal
+backups/
+node_modules/
+test/
+scripts/

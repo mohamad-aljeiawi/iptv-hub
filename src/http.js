@@ -36,6 +36,21 @@ export function origin(req) {
   return `${proto}://${req.headers['x-forwarded-host'] || req.headers.host}`;
 }
 
+// A peer on loopback or a private network is our own proxy (nginx, Caddy, or the
+// Docker gateway in front of the container), so its X-Forwarded-For is trusted.
+const PRIVATE_PEER = /^(?:::ffff:)?(?:127\.|10\.|192\.168\.|172\.(?:1[6-9]|2\d|3[01])\.)|^(?:::1|f[cd][0-9a-f]{2}:)/i;
+
+// The client address, for rate limiting. Proxies append the address they saw to
+// X-Forwarded-For, so the LAST entry is the real client; the entries before it are
+// whatever the client sent and can be forged. A request that did not come through
+// a proxy is identified by its socket address alone.
+export function clientIp(req) {
+  const peer = req.socket?.remoteAddress || '?';
+  const xff = req.headers['x-forwarded-for'];
+  if (!xff || !PRIVATE_PEER.test(peer)) return peer;
+  return xff.split(',').at(-1).trim() || peer;
+}
+
 // ───────────────────────── large response cache (raw + gzipped) ─────────────────────────
 const listCache = new Map();
 const clearHooks = [];

@@ -113,6 +113,14 @@ a stream, IPTV Hub picks a source and answers with a 302 to the upstream URL. Th
 
 ## One-command install on a server
 
+There are two installers. Both put nginx in front with a Let's Encrypt certificate and
+keep the player paths on plain HTTP:
+
+- **`install.sh`** runs the app directly on Node.js under systemd. Use it on a plain
+  Ubuntu or Debian server. Described below.
+- **`deploy.sh`** runs the app in Docker. Use it on a server that already uses Docker
+  and nginx. See [Deploy with Docker](#deploy-with-docker).
+
 Works on a server that already hosts other sites and services, and touches none
 of their configuration.
 
@@ -152,6 +160,35 @@ iptvhub backup        # back up now
 iptvhub admin-pass    # show or change the admin password
 iptvhub uninstall     # clean removal, asks whether to keep the database
 ```
+
+### Deploy with Docker
+
+On a server with Docker, the Compose plugin and nginx. The same command does the first
+deployment and every update, and only asks for the domain and an email for Let's
+Encrypt (both remembered for the next run):
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/mohamad-aljeiawi/iptv-hub/main/deploy.sh -o deploy.sh
+sudo bash deploy.sh                       # first deployment
+sudo bash /opt/iptv-hub/deploy.sh         # every update after that
+sudo bash /opt/iptv-hub/deploy.sh --backup
+```
+
+| Step | Details |
+|---|---|
+| Code | Clones into `/opt/iptv-hub`, then fast-forwards on later runs. Local edits stop the update instead of being overwritten |
+| DNS check | Stops with the exact A record to add if the domain does not point at this server, and rejects an AAAA record that points elsewhere |
+| Container | `docker compose up -d --build`, published on `127.0.0.1` only (Docker bypasses UFW, so nothing is exposed directly). The database lives in the `iptv-hub-data` volume |
+| nginx | The same standalone site file as `install.sh`, tested with `nginx -t` and rolled back if the test fails |
+| Certificate | `certbot certonly --webroot`, requested once. A renewal hook reloads nginx, certbot's timer is enabled, and a renewal dry run proves it works |
+| Backups | Before every update, and daily via a systemd timer, to `/var/backups/iptv-hub` (last 7 kept) |
+
+Moving an existing installation? Copy its database to `/root/iptv-hub-import.db` before
+the first run. It is imported once into the empty volume, and the admin password and
+providers come with it.
+
+`compose.yml` also works on its own: `docker compose up -d --build`, then point any
+reverse proxy at `127.0.0.1:18000`.
 
 ### Why player paths are not forced to HTTPS
 
@@ -243,6 +280,7 @@ src/
   http.js       HTTP helpers, router and response cache
 public/         the web interface (one HTML file, no build step)
 scripts/        install.sh, the iptvhub CLI, nginx/caddy/systemd templates
+deploy.sh       Docker deployment (with Dockerfile and compose.yml)
 test/           mock-xtream.js plus node:test suites
 ```
 

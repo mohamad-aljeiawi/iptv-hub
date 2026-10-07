@@ -31,7 +31,7 @@ access and no provider account.
 
 - `npm test` passes.
 - If you touched `scripts/install.sh` or `scripts/iptvhub`, run
-  `shellcheck --severity=warning install.sh scripts/install.sh scripts/iptvhub`. CI runs
+  `shellcheck --severity=warning install.sh deploy.sh scripts/install.sh scripts/iptvhub`. CI runs
   the same command.
 - If you changed behaviour a player or an operator can see, add a line under
   `[Unreleased]` in [CHANGELOG.md](CHANGELOG.md).

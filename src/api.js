@@ -7,7 +7,7 @@ import path from 'node:path';
 import { readFile } from 'node:fs/promises';
 import { db, itemById, checkUser, session, newSession, kvDel, cleanupOrphans } from './db.js';
 import { PUBLIC_DIR, UA } from './config.js';
-import { send, readBody, origin, clearCaches, lru } from './http.js';
+import { send, readBody, origin, clearCaches, lru, clientIp } from './http.js';
 import { xt, scheduleSync, down, syncing } from './sync.js';
 import { ranked } from './resolve.js';
 import { search, COLS } from './search.js';
@@ -25,7 +25,7 @@ const imgCache = lru(400);
 const LOGIN_MAX = 5, LOGIN_WINDOW = 60e3;
 const attempts = new Map();
 function loginBlocked(req) {
-  const ip = (req.headers['x-forwarded-for'] || '').split(',')[0].trim() || req.socket.remoteAddress || '?';
+  const ip = clientIp(req);
   const now = Date.now();
   const a = (attempts.get(ip) || []).filter(t => now - t < LOGIN_WINDOW);
   attempts.set(ip, a);
