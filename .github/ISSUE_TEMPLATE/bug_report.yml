@@ -1,0 +1,64 @@
+name: Bug report
+description: Something does not work the way the README says it should.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        **Never paste a real provider URL, username, password or playlist.** Replace them
+        with placeholders such as `http://provider.example:8080` and `user` / `pass`.
+        Stream URLs contain credentials, so redact those too.
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What you did, what you expected, and what you got instead.
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Merging or name cleaning (duplicates, wrong merges)
+        - Playback, redirects or failover
+        - Search
+        - Web interface
+        - install.sh or the iptvhub command
+        - Something else
+    validations:
+      required: true
+  - type: textarea
+    id: names
+    attributes:
+      label: Raw names (for merging problems)
+      description: |
+        The names exactly as each provider lists them, for example
+        `[AR] The Matrix (1999) FHD` and `EN - the matrix 1999 4K`. These are the most useful
+        thing you can give for a de-duplication bug.
+      render: text
+  - type: input
+    id: player
+    attributes:
+      label: Player
+      description: For playback problems, the player and its version (TiviMate 5.x, IPTV Smarters, VLC...).
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs
+      description: Output of `iptvhub status` and the relevant lines from `iptvhub logs`, with credentials removed.
+      render: text
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: The `version` line from `iptvhub status`, or `git rev-parse --short HEAD`.
+    validations:
+      required: true
+  - type: input
+    id: env
+    attributes:
+      label: Environment
+      description: OS, Node.js version (`node -v`), and the web server in front (nginx, Caddy, none...).
+    validations:
+      required: true

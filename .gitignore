@@ -1,0 +1,25 @@
+# --- Local configuration and credentials ---
+# The real settings, including the admin password. install.sh generates it on a
+# server; .env.example documents every setting.
+.env
+.env.*
+!.env.example
+
+# --- Databases and backups ---
+# A catalog.db holds every upstream provider's username and password in plain
+# text, plus local player accounts. Never commit one, not even a test copy.
+*.db
+*.db-shm
+*.db-wal
+*.db-journal
+backups/
+
+# --- Node ---
+node_modules/
+npm-debug.log*
+
+# --- Editors / OS ---
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

@@ -1,0 +1,517 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>IPTV Hub</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Readex+Pro:wght@300;400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#0F1D2E; --panel:#172A40; --panel2:#1E3450; --line:#2A4566;
+  --text:#E9EEF5; --muted:#8EA2BA; --signal:#FFB547; --live:#FF5A5F;
+  --r-sm:6px; --r-lg:14px;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--ink);color:var(--text);font-family:"Readex Pro",system-ui,sans-serif;font-size:16px;line-height:1.55}
+button,input,select{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--signal);outline-offset:2px}
+[hidden]{display:none!important}
+.wrap{max-width:1200px;margin:0 auto;padding-inline:20px}
+
+header{padding-top:18vh;transition:padding .35s ease}
+body.q header{padding-top:18px}
+.brand{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:28px}
+body.q .brand{margin-bottom:12px}
+.brand h1{margin:0;font-size:1.05rem;font-weight:500;color:var(--muted);margin-inline-end:auto}
+.ghost{background:none;border:1px solid var(--line);border-radius:var(--r-sm);padding:6px 14px;cursor:pointer;color:var(--muted)}
+.ghost:hover{color:var(--text);border-color:var(--muted)}
+.search input{width:100%;background:var(--panel);border:1px solid var(--line);border-radius:var(--r-lg);
+  padding:22px 26px;font-size:clamp(1.3rem,3vw,2rem);font-weight:300;letter-spacing:-.01em}
+body.q .search input{padding:14px 20px;font-size:1.2rem}
+.search input::placeholder{color:#5F7896}
+.search input:focus{outline:none;border-color:var(--signal)}
+.signal{display:flex;align-items:flex-end;gap:14px;margin-top:14px;color:var(--muted);font-size:.85rem}
+.bars{display:flex;align-items:flex-end;gap:3px;height:18px}
+.bars i{width:5px;border-radius:1px;background:var(--signal)}
+.bars i.bad{background:var(--live)}
+.bars i.wait{background:var(--line)}
+.filters{display:flex;gap:6px;margin:18px 0 6px;flex-wrap:wrap}
+.filters button{background:none;border:1px solid var(--line);border-radius:999px;padding:5px 16px;cursor:pointer;color:var(--muted)}
+.filters button[aria-pressed=true]{background:var(--text);border-color:var(--text);color:var(--ink)}
+body:not(.q) .filters,body:not(.q) .meta{display:none}
+.meta{color:var(--muted);font-size:.85rem;margin:6px 0 0}
+
+main{padding:10px 0 60px}
+section h2{font-size:1.1rem;font-weight:500;margin:28px 0 12px}
+.channels{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:8px}
+.ch{display:flex;align-items:center;gap:12px;background:var(--panel);border:1px solid transparent;border-radius:var(--r-sm);padding:10px 12px;cursor:pointer;text-align:start}
+.ch:hover{border-color:var(--line);background:var(--panel2)}
+.logo{position:relative;width:44px;height:44px;border-radius:4px;overflow:hidden;background:#0B1624;flex:none}
+.logo img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain}
+.ch .name{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--live);flex:none}
+.posters{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:18px 14px}
+.po{display:flex;flex-direction:column;justify-content:flex-start;background:none;border:0;padding:0;cursor:pointer;text-align:start}
+.po .art{position:relative;width:100%;aspect-ratio:2/3;border-radius:var(--r-sm);overflow:hidden;background:var(--panel)}
+.po img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block}
+.po .ph{position:absolute;inset:0}
+.po:hover .art{outline:2px solid var(--signal)}
+.po .t{margin-top:8px;font-size:.92rem;line-height:1.35;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.po .y{color:var(--muted);font-size:.8rem}
+.ph{display:grid;place-items:center;width:100%;height:100%;font-size:2.2rem;font-weight:700;color:var(--line)}
+.srcs{position:absolute;bottom:6px;inset-inline-start:6px;background:rgba(15,29,46,.88);color:var(--signal);font-size:.72rem;padding:2px 8px;border-radius:999px}
+.ch .srcs{position:static;background:none;padding:0}
+.empty{color:var(--muted);padding:40px 0;max-width:46ch}
+.primary{background:var(--signal);color:var(--ink);border:0;border-radius:var(--r-sm);padding:9px 18px;cursor:pointer;font-weight:500}
+
+dialog{background:var(--panel);color:var(--text);border:1px solid var(--line);border-radius:var(--r-lg);padding:0;width:min(960px,96vw);max-height:92vh}
+dialog::backdrop{background:rgba(5,12,20,.8)}
+.dlg-head{display:flex;justify-content:space-between;align-items:center;padding:14px 18px;border-bottom:1px solid var(--line)}
+.dlg-head h3{margin:0;font-size:1.1rem;font-weight:500}
+.x{background:none;border:0;font-size:1.4rem;cursor:pointer;color:var(--muted);line-height:1}
+.dlg-body{padding:18px;overflow:auto;max-height:calc(92vh - 60px)}
+video{width:100%;aspect-ratio:16/9;background:#000;border-radius:var(--r-sm);display:block}
+.status{min-height:1.5em;color:var(--muted);font-size:.85rem;margin:8px 0}
+.status.err{color:var(--live)}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.pill{background:var(--panel2);border:1px solid var(--line);border-radius:var(--r-sm);padding:6px 12px;cursor:pointer;font-size:.88rem;text-decoration:none}
+.pill[aria-current=true]{border-color:var(--signal);color:var(--signal)}
+.pill small{color:var(--muted)}
+.pill.off{opacity:.55}
+.eps{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:6px;margin-top:10px}
+.eps button{text-align:start}
+h4{font-weight:500;margin:20px 0 8px;font-size:.95rem;color:var(--muted)}
+.tabs{display:flex;gap:4px;border-bottom:1px solid var(--line);padding:0 18px}
+.tabs button{background:none;border:0;border-bottom:2px solid transparent;padding:12px 14px;cursor:pointer;color:var(--muted)}
+.tabs button[aria-selected=true]{color:var(--text);border-color:var(--signal)}
+.lst{display:flex;gap:12px;align-items:center;padding:12px 0;border-bottom:1px solid var(--line)}
+.lst .info{flex:1;min-width:0}
+.sub{color:var(--muted);font-size:.82rem}
+.sub.err{color:var(--live)}
+.cred{display:grid;grid-template-columns:auto 1fr auto;gap:8px 14px;align-items:center}
+.cred dt{color:var(--muted);font-size:.88rem}
+.cred dd{margin:0;background:var(--ink);border:1px solid var(--line);border-radius:var(--r-sm);padding:8px 12px;font-size:.9rem;overflow-wrap:anywhere;direction:ltr;text-align:left}
+.note{color:var(--muted);font-size:.88rem;max-width:62ch}
+form.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}
+form input{background:var(--ink);border:1px solid var(--line);border-radius:var(--r-sm);padding:10px 12px;min-width:0}
+form .full{grid-column:1/-1}
+#login{width:min(400px,94vw)}
+#login form{display:grid;gap:10px}
+@media (max-width:600px){ form.grid{grid-template-columns:1fr} .posters{grid-template-columns:repeat(auto-fill,minmax(110px,1fr))} header{padding-top:10vh} .cred{grid-template-columns:1fr auto} .cred dt{grid-column:1/-1} }
+@media (prefers-reduced-motion:reduce){ *{transition:none!important} }
+</style>
+</head>
+<body>
+<header class="wrap">
+  <div class="brand">
+    <h1>IPTV Hub</h1>
+    <button class="ghost" id="openSettings" type="button">ربط المشغل</button>
+    <button class="ghost" id="logout" type="button">خروج</button>
+  </div>
+  <div class="search">
+    <input id="q" type="search" autocomplete="off" spellcheck="false" placeholder="ابحث عن قناة، فيلم أو مسلسل" aria-label="بحث">
+  </div>
+  <div class="signal" aria-live="polite"><span class="bars" id="bars"></span><span id="summary"></span></div>
+  <div class="filters" role="group" aria-label="نوع المحتوى">
+    <button type="button" data-t="" aria-pressed="true">الكل</button>
+    <button type="button" data-t="live" aria-pressed="false">قنوات</button>
+    <button type="button" data-t="vod" aria-pressed="false">أفلام</button>
+    <button type="button" data-t="series" aria-pressed="false">مسلسلات</button>
+  </div>
+  <p class="meta" id="meta"></p>
+</header>
+<main class="wrap" id="out"></main>
+
+<!-- Login -->
+<dialog id="login">
+  <div class="dlg-head"><h3>تسجيل الدخول</h3></div>
+  <div class="dlg-body">
+    <form id="loginForm">
+      <input name="username" placeholder="اسم المستخدم" autocomplete="username" required dir="ltr">
+      <input name="password" placeholder="كلمة المرور" type="password" autocomplete="current-password" required dir="ltr">
+      <button class="primary" type="submit">دخول</button>
+      <p class="status" id="loginStatus"></p>
+    </form>
+  </div>
+</dialog>
+
+<!-- Player -->
+<dialog id="player">
+  <div class="dlg-head"><h3 id="pTitle"></h3><button class="x" type="button" data-close aria-label="إغلاق">×</button></div>
+  <div class="dlg-body">
+    <video id="video" controls playsinline></video>
+    <div class="status" id="pStatus"></div>
+    <h4>المصادر</h4>
+    <div class="row" id="pSources"></div>
+    <div id="pSeries"></div>
+    <h4>تشغيل في مشغل خارجي</h4>
+    <div class="row">
+      <a class="pill" id="openAndroid" hidden>فتح بمشغل الجهاز</a>
+      <button class="pill" type="button" id="dlM3u">تنزيل ملف لـ VLC</button>
+      <button class="pill" type="button" id="copyLink">نسخ الرابط</button>
+    </div>
+  </div>
+</dialog>
+
+<!-- Settings -->
+<dialog id="settings">
+  <div class="dlg-head"><h3>الإعدادات</h3><button class="x" type="button" data-close aria-label="إغلاق">×</button></div>
+  <div class="tabs" role="tablist">
+    <button type="button" role="tab" data-tab="connect" aria-selected="true">ربط المشغل</button>
+    <button type="button" role="tab" data-tab="servers" aria-selected="false" data-admin>السيرفرات</button>
+    <button type="button" role="tab" data-tab="users" aria-selected="false" data-admin>المستخدمون</button>
+  </div>
+  <div class="dlg-body">
+    <div data-panel="connect">
+      <p class="note">في TiviMate أو IPTV Smarters أو أي مشغل يدعم Xtream Codes، أضف قائمة جديدة من نوع Xtream وأدخل هذه البيانات. ستظهر كل السيرفرات كسيرفر واحد بدون تكرار، والفيديو يصل من السيرفر الأصلي مباشرة.</p>
+      <dl class="cred" id="cred"></dl>
+    </div>
+    <div data-panel="servers" hidden>
+      <div id="srvList"></div>
+      <h4>إضافة سيرفر</h4>
+      <form class="grid" id="addServer">
+        <input name="name" placeholder="اسم مختصر (اختياري)">
+        <input name="url" placeholder="http://host:port" required dir="ltr">
+        <input name="username" placeholder="اسم المستخدم" required dir="ltr">
+        <input name="password" placeholder="كلمة المرور" required dir="ltr" type="password">
+        <button class="primary full" type="submit">إضافة ومزامنة</button>
+      </form>
+      <p class="status" id="srvStatus"></p>
+    </div>
+    <div data-panel="users" hidden>
+      <p class="note">كل مستخدم هنا يسجّل الدخول في المشغل بهذه البيانات، ولا يرى بيانات سيرفراتك الأصلية في إعدادات المشغل.</p>
+      <div id="userList"></div>
+      <h4>إضافة مستخدم</h4>
+      <form class="grid" id="addUser">
+        <input name="username" placeholder="اسم المستخدم (إنجليزي)" required dir="ltr">
+        <input name="password" placeholder="كلمة المرور" required dir="ltr">
+        <input name="max_conn" type="number" min="1" value="1" placeholder="عدد الأجهزة" aria-label="عدد الأجهزة" title="عدد الأجهزة">
+        <input name="days" type="number" min="0" placeholder="مدة الاشتراك بالأيام (فارغ = دائم)">
+        <button class="primary full" type="submit">إضافة المستخدم</button>
+      </form>
+      <p class="status" id="userStatus"></p>
+    </div>
+  </div>
+</dialog>
+
+<script>
+const $ = s => document.querySelector(s);
+const $$ = s => [...document.querySelectorAll(s)];
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const nf = new Intl.NumberFormat('ar');
+let me = null, type = '', ctl, stats;
+const cache = new Map();
+
+async function api(url, opts = {}) {
+  const r = await fetch(url, { ...opts, headers: { 'Content-Type': 'application/json', ...(opts.headers || {}) } });
+  if (r.status === 401 && !url.endsWith('/login')) { showLogin(); throw new Error('auth'); }
+  const d = await r.json().catch(() => ({}));
+  if (!r.ok) throw Object.assign(new Error(d.error || 'خطأ'), { data: d });
+  return d;
+}
+
+// ── login ──
+function showLogin() { if (!$('#login').open) $('#login').showModal(); }
+$('#login').addEventListener('cancel', e => e.preventDefault());
+$('#loginForm').onsubmit = async e => {
+  e.preventDefault();
+  try {
+    await api('/api/login', { method: 'POST', body: JSON.stringify(Object.fromEntries(new FormData(e.target))) });
+    $('#login').close(); e.target.reset(); start();
+  } catch (err) { $('#loginStatus').textContent = err.message; $('#loginStatus').className = 'status err'; }
+};
+$('#logout').onclick = async () => { await api('/api/logout', { method: 'POST' }).catch(() => {}); location.reload(); };
+
+async function start() {
+  try { me = await api('/api/me'); } catch { return; }
+  $$('[data-admin]').forEach(el => el.hidden = !me.admin);
+  $('#openSettings').textContent = me.admin ? 'الإعدادات' : 'ربط المشغل';
+  await loadStats(); home(); q.focus();
+}
+
+// Xtream-style links: the player (or the browser) requests them from this server,
+// which redirects to the upstream provider.
+const xtUrl = (kind, id, ext, src) => {
+  const U = encodeURIComponent(me.username), P = encodeURIComponent(me.password);
+  const path = kind === 'live' ? 'live' : kind === 'vod' ? 'movie' : 'series';
+  return `${me.origin}/${path}/${U}/${P}/${id}.${ext}${src ? `?src=${src}` : ''}`;
+};
+
+// ── instant search ──
+const q = $('#q');
+let timer;
+q.addEventListener('input', () => { clearTimeout(timer); timer = setTimeout(run, 120); });
+document.addEventListener('keydown', e => { if (e.key === '/' && document.activeElement !== q && !document.querySelector('dialog[open]')) { e.preventDefault(); q.focus(); } });
+$$('.filters button').forEach(b => b.onclick = () => {
+  type = b.dataset.t;
+  $$('.filters button').forEach(x => x.setAttribute('aria-pressed', x === b));
+  run();
+});
+
+async function run() {
+  const text = q.value.trim();
+  document.body.classList.toggle('q', !!text);
+  if (!text) return home();
+  const key = type + '|' + text;
+  if (cache.has(key)) return render(cache.get(key), true);
+  ctl?.abort(); ctl = new AbortController();
+  try {
+    const d = await api(`/api/search?q=${encodeURIComponent(text)}&type=${type}`, { signal: ctl.signal });
+    cache.set(key, d); if (cache.size > 300) cache.delete(cache.keys().next().value);
+    render(d);
+  } catch (e) { if (e.name !== 'AbortError' && e.message !== 'auth') $('#meta').textContent = 'تعذر الاتصال بالخادم'; }
+}
+
+function render(d, fromCache) {
+  const res = d.results;
+  $('#meta').innerHTML = (d.corrected ? `نتائج عن <bdi>${esc(d.corrected)}</bdi>. ` : '') +
+    (res.length ? `${nf.format(res.length)} نتيجة خلال ${fromCache ? 'أقل من ١' : nf.format(d.ms)} ملي ثانية` : '');
+  if (!res.length) { $('#out').innerHTML = `<p class="empty">لا توجد نتائج مطابقة. جرّب كلمة أقصر أو اسماً بلغة أخرى.</p>`; return; }
+  const by = t => res.filter(r => r.type === t);
+  const cap = type ? 999 : 12;
+  $('#out').innerHTML = block('قنوات مباشرة', by('live'), channels, cap, 'live') + block('أفلام', by('vod'), posters, cap, 'vod') + block('مسلسلات', by('series'), posters, cap, 'series');
+}
+const block = (title, list, fn, cap = 999, t) => list.length ? `<section><h2>${title}</h2>${fn(list.slice(0, cap))}${
+  list.length > cap ? `<p><button class="pill" type="button" data-more="${t}">عرض الكل</button></p>` : ''}</section>` : '';
+const srcBadge = n => n > 1 ? `<span class="srcs">${nf.format(n)} مصادر</span>` : '';
+const channels = list => `<div class="channels">${list.map(r => `
+  <button class="ch" type="button" data-id="${r.id}">
+    <span class="logo"><span class="ph"></span>${r.img ? `<img loading="lazy" src="${r.img}" alt="" onerror="this.remove()">` : ''}</span>
+    <span class="name">${esc(r.title)}</span>${srcBadge(r.sources)}<span class="dot" title="مباشر"></span>
+  </button>`).join('')}</div>`;
+const posters = list => `<div class="posters">${list.map(r => `
+  <button class="po" type="button" data-id="${r.id}">
+    <div class="art"><span class="ph">${esc(r.title[0] || '')}</span>${r.img ? `<img loading="lazy" src="${r.img}" alt="" onerror="this.remove()">` : ''}${srcBadge(r.sources)}</div>
+    <div class="t">${esc(r.title)}</div><div class="y">${esc(r.year || '')}${r.rating ? ` ، تقييم ${(+r.rating).toFixed(1)}` : ''}</div>
+  </button>`).join('')}</div>`;
+$('#out').addEventListener('click', e => {
+  const more = e.target.closest('[data-more]');
+  if (more) return document.querySelector(`.filters [data-t="${more.dataset.more}"]`).click();
+  if (e.target.closest('[data-open-settings]')) return openSettings('servers');
+  const b = e.target.closest('[data-id]'); if (b) openItem(+b.dataset.id);
+});
+
+async function home() {
+  $('#meta').textContent = '';
+  if (stats && !stats.servers.length) {
+    $('#out').innerHTML = me.admin
+      ? `<div class="empty">لم تُضف أي سيرفر بعد. أضف سيرفر Xtream واحداً على الأقل، ويُجلب الكتالوج مرة واحدة ثم يصبح البحث فورياً.<p><button class="primary" type="button" data-open-settings>إضافة سيرفر</button></p></div>`
+      : `<p class="empty">لا يوجد محتوى بعد.</p>`;
+    return;
+  }
+  const [vod, series] = await Promise.all(['vod', 'series'].map(t => api(`/api/latest?type=${t}&limit=18`)));
+  if (q.value.trim()) return;
+  $('#out').innerHTML = block('أحدث الأفلام', vod, posters) + block('أحدث المسلسلات', series, posters);
+}
+
+// ── player ──
+const video = $('#video');
+let item, srcIdx = 0, episode = null, stallTimer;
+function stop() { clearTimeout(stallTimer); video.removeAttribute('src'); video.load(); }
+function status(t, err) { const s = $('#pStatus'); s.textContent = t; s.className = 'status' + (err ? ' err' : ''); }
+
+async function openItem(id) {
+  item = await api(`/api/item/${id}`);
+  srcIdx = 0; episode = null;
+  $('#pTitle').textContent = item.title + (item.year ? ` (${item.year})` : '');
+  $('#player').showModal();
+  drawSources();
+  if (item.type === 'series') { stop(); status('اختر حلقة'); loadEpisodes(); }
+  else { $('#pSeries').innerHTML = ''; play(); }
+}
+function drawSources() {
+  $('#pSources').innerHTML = item.sources.map((s, i) => `
+    <button class="pill ${s.down ? 'off' : ''}" type="button" data-i="${i}" aria-current="${i === srcIdx}">${esc(s.server)} ${s.quality ? `<small>${esc(s.quality)}</small>` : ''} ${s.ext ? `<small>${esc(s.ext)}</small>` : ''}</button>`).join('');
+  updateExternal();
+}
+$('#pSources').onclick = e => {
+  const b = e.target.closest('[data-i]'); if (!b) return;
+  srcIdx = +b.dataset.i; drawSources();
+  if (item.type !== 'series' || episode) play();
+};
+// The current link, based on the item type and the selected source.
+function currentUrl(ext) {
+  const s = item.sources[srcIdx];
+  if (item.type === 'live') return xtUrl('live', item.id, ext || 'ts', s.id);
+  if (item.type === 'vod') return xtUrl('vod', item.id, s.ext || 'mp4', s.id);
+  return episode ? xtUrl('series', episode.vid, 'mp4', s.id) : null;
+}
+function updateExternal() {
+  const url = currentUrl();
+  const a = $('#openAndroid');
+  a.hidden = !url || !/Android/i.test(navigator.userAgent);
+  if (url) { const u = new URL(url); a.href = `intent://${u.host}${u.pathname}${u.search}#Intent;scheme=${u.protocol.slice(0, -1)};type=video/*;end`; }
+}
+
+function play() {
+  stop(); updateExternal();
+  const s = item.sources[srcIdx];
+  status(`جاري التشغيل من ${s.server}`);
+  stallTimer = setTimeout(() => failover('المصدر لم يستجب خلال 12 ثانية'), 12000);
+  video.onplaying = () => { clearTimeout(stallTimer); status(`يعمل من ${s.server}`); };
+  video.onerror = () => failover(item.type === 'live' ? 'المتصفح لا يستطيع تشغيل هذا البث' : 'تعذر تشغيل الملف في المتصفح');
+  // Channels are requested as HLS because that is what browsers can play;
+  // movies and episodes keep their own container.
+  video.src = currentUrl(item.type === 'live' ? 'm3u8' : undefined);
+  video.play().catch(() => {});
+}
+function failover(reason) {
+  if (!$('#player').open) return;
+  clearTimeout(stallTimer);
+  if (srcIdx + 1 < item.sources.length) {
+    srcIdx++; drawSources(); status(`${reason}، جاري التبديل إلى ${item.sources[srcIdx].server}`); setTimeout(play, 400);
+  } else {
+    stop();
+    const hint = location.protocol === 'https:' ? ' روابط IPTV غالباً HTTP والمتصفح يمنعها داخل موقع HTTPS، لذلك' : '';
+    status(`${reason}.${hint} استخدم مشغلاً خارجياً من الأزرار بالأسفل.`, true);
+  }
+}
+
+async function loadEpisodes() {
+  const box = $('#pSeries'); box.innerHTML = '<p class="status">جاري جلب الحلقات من كل السيرفرات</p>';
+  try {
+    const d = await api(`/api/series/${item.id}`);
+    if (!d.seasons?.length) { box.innerHTML = '<p class="status">لا توجد حلقات متاحة.</p>'; return; }
+    box.innerHTML = `<h4>المواسم</h4><div class="row" id="seasons">${d.seasons.map((s, i) =>
+      `<button class="pill" type="button" data-s="${i}" aria-current="${i === 0}">الموسم ${s.season}</button>`).join('')}</div><div class="eps" id="eps"></div>`;
+    const showSeason = i => {
+      $$('#seasons .pill').forEach(b => b.setAttribute('aria-current', b.dataset.s == i));
+      $('#eps').innerHTML = d.seasons[i].episodes.map((e, j) =>
+        `<button class="pill" type="button" data-e="${j}" title="${esc(e.plot)}">الحلقة ${e.num}${e.duration ? ` <small>${esc(e.duration)}</small>` : ''}</button>`).join('');
+      $('#eps').onclick = ev => {
+        const b = ev.target.closest('[data-e]'); if (!b) return;
+        episode = { ...d.seasons[i].episodes[+b.dataset.e], season: d.seasons[i].season };
+        $$('#eps .pill').forEach(x => x.setAttribute('aria-current', x === b));
+        play();
+      };
+    };
+    $('#seasons').onclick = ev => { const b = ev.target.closest('[data-s]'); if (b) showSeason(+b.dataset.s); };
+    showSeason(0);
+  } catch { box.innerHTML = '<p class="status err">تعذر جلب الحلقات.</p>'; }
+}
+
+// An m3u file listing every source in order: if the first fails, VLC moves on
+// to the next one by itself.
+$('#dlM3u').onclick = () => {
+  if (item.type === 'series' && !episode) return status('اختر حلقة أولاً', true);
+  const title = item.title + (episode ? ` - الموسم ${episode.season ?? ''} الحلقة ${episode.num}` : '');
+  const lines = ['#EXTM3U', ...item.sources.flatMap((s, i) => {
+    const keep = srcIdx; srcIdx = i; const u = currentUrl(); srcIdx = keep;
+    return [`#EXTINF:-1,${title} (${s.server})`, u];
+  })];
+  const a = Object.assign(document.createElement('a'), { href: URL.createObjectURL(new Blob([lines.join('\n')], { type: 'audio/x-mpegurl' })), download: 'play.m3u' });
+  a.click(); URL.revokeObjectURL(a.href);
+};
+$('#copyLink').onclick = async () => {
+  const url = currentUrl();
+  if (!url) return status('اختر حلقة أولاً', true);
+  try { await navigator.clipboard.writeText(url); status('نُسخ الرابط. في VLC اختر "فتح مجرى شبكة" والصقه.'); }
+  catch { prompt('انسخ الرابط:', url); }
+};
+$('#player').addEventListener('close', stop);
+$$('[data-close]').forEach(b => b.onclick = () => b.closest('dialog').close());
+
+// ── settings ──
+function openSettings(tab = 'connect') { $('#settings').showModal(); selectTab(tab); }
+$('#openSettings').onclick = () => openSettings();
+$$('.tabs [data-tab]').forEach(b => b.onclick = () => selectTab(b.dataset.tab));
+function selectTab(tab) {
+  $$('.tabs [data-tab]').forEach(b => b.setAttribute('aria-selected', b.dataset.tab === tab));
+  $$('[data-panel]').forEach(p => p.hidden = p.dataset.panel !== tab);
+  if (tab === 'connect') drawCred();
+  if (tab === 'servers') drawServers();
+  if (tab === 'users') loadUsers();
+}
+function drawCred() {
+  const U = encodeURIComponent(me.username), P = encodeURIComponent(me.password);
+  const rows = [
+    ['رابط السيرفر', me.origin],
+    ['اسم المستخدم', me.username],
+    ['كلمة المرور', me.password],
+    ['رابط M3U', `${me.origin}/get.php?username=${U}&password=${P}&type=m3u_plus&output=ts`],
+    ['دليل البرامج EPG', `${me.origin}/xmltv.php?username=${U}&password=${P}`],
+  ];
+  $('#cred').innerHTML = rows.map(([k, v], i) => `<dt>${k}</dt><dd>${esc(v)}</dd><button class="pill" type="button" data-copy="${i}">نسخ</button>`).join('');
+  $('#cred').onclick = async e => {
+    const b = e.target.closest('[data-copy]'); if (!b) return;
+    await navigator.clipboard.writeText(rows[+b.dataset.copy][1]).catch(() => {});
+    b.textContent = 'نُسخ'; setTimeout(() => b.textContent = 'نسخ', 1500);
+  };
+}
+
+async function loadStats() {
+  stats = await api('/api/stats');
+  const it = stats.items, total = (it.live || 0) + (it.vod || 0) + (it.series || 0);
+  $('#bars').innerHTML = stats.servers.map(s => {
+    const cls = s.error || s.down ? 'bad' : (!s.last_sync || s.syncing) ? 'wait' : '';
+    const h = s.error || s.down ? 6 : Math.max(6, 18 - Math.min(12, (s.latency || 0) / 100));
+    return `<i class="${cls}" style="height:${h}px" title="${esc(s.name || '')}"></i>`;
+  }).join('');
+  $('#summary').textContent = stats.servers.length
+    ? `${nf.format(stats.servers.length)} سيرفر، ${nf.format(total)} عنصر بدون تكرار من أصل ${nf.format(stats.sources)} رابط`
+    : 'لا توجد سيرفرات';
+  if (!$('[data-panel=servers]').hidden && $('#settings').open) drawServers();
+}
+function drawServers() {
+  const fmtDate = t => t ? new Date(t * 1000).toLocaleDateString('ar') : 'غير محدد';
+  $('#srvList').innerHTML = stats.servers.length ? stats.servers.map(s => `
+    <div class="lst">
+      <div class="info">
+        <div>${esc(s.name)} <small class="sub" dir="ltr">${esc(s.host)}</small></div>
+        <div class="sub ${s.error || s.down ? 'err' : ''}">${s.syncing ? 'جاري المزامنة' : s.error ? esc(s.error) : s.down ? 'لا يستجيب حالياً، تُحوَّل المشاهدات لسيرفر آخر' :
+          `${nf.format(s.items)} رابط، ينتهي ${fmtDate(s.exp_date)}، ${s.max_conn || '?'} اتصال، استجابة ${s.latency ?? '?'}ms`}</div>
+      </div>
+      <button class="pill" type="button" data-sync="${s.id}">مزامنة</button>
+      <button class="pill" type="button" data-del="${s.id}">حذف</button>
+    </div>`).join('') : '<p class="status">لا توجد سيرفرات بعد.</p>';
+}
+$('#srvList').onclick = async e => {
+  const sync = e.target.closest('[data-sync]'), del = e.target.closest('[data-del]');
+  if (!sync && !del) return;
+  if (del && !confirm('حذف هذا السيرفر وكل روابطه من الكتالوج؟')) return;
+  await api(sync ? `/api/servers/${sync.dataset.sync}/sync` : `/api/servers/${del.dataset.del}`, { method: sync ? 'POST' : 'DELETE' }).catch(err => alert(err.message));
+  cache.clear(); await loadStats(); run();
+};
+$('#addServer').onsubmit = async e => {
+  e.preventDefault();
+  const st = $('#srvStatus'); st.className = 'status'; st.textContent = 'جاري التحقق من بيانات الدخول';
+  try {
+    await api('/api/servers', { method: 'POST', body: JSON.stringify(Object.fromEntries(new FormData(e.target))) });
+    st.textContent = 'أُضيف السيرفر، والمزامنة تعمل في الخلفية'; e.target.reset(); await loadStats();
+  } catch (err) { st.textContent = err.message; st.className = 'status err'; }
+};
+
+async function loadUsers() {
+  const users = await api('/api/users');
+  const fmt = t => t ? `ينتهي ${new Date(t * 1000).toLocaleDateString('ar')}` : 'دائم';
+  $('#userList').innerHTML = users.length ? users.map(u => `
+    <div class="lst">
+      <div class="info"><div dir="ltr" style="text-align:right">${esc(u.username)} / ${esc(u.password)}</div>
+      <div class="sub">${nf.format(u.max_conn)} جهاز، ${fmt(u.exp_date)}</div></div>
+      <button class="pill" type="button" data-deluser="${u.id}">حذف</button>
+    </div>`).join('') : '<p class="status">لا يوجد مستخدمون بعد. يمكنك استخدام حساب الأدمن في المشغل أيضاً.</p>';
+}
+$('#userList').onclick = async e => {
+  const b = e.target.closest('[data-deluser]'); if (!b || !confirm('حذف هذا المستخدم؟')) return;
+  await api(`/api/users/${b.dataset.deluser}`, { method: 'DELETE' }); loadUsers();
+};
+$('#addUser').onsubmit = async e => {
+  e.preventDefault();
+  const st = $('#userStatus'); st.className = 'status';
+  try {
+    await api('/api/users', { method: 'POST', body: JSON.stringify(Object.fromEntries(new FormData(e.target))) });
+    st.textContent = 'أُضيف المستخدم'; e.target.reset(); loadUsers();
+  } catch (err) { st.textContent = err.message; st.className = 'status err'; }
+};
+
+start();
+setInterval(async () => {
+  if (!me) return;
+  const before = stats?.sources;
+  await loadStats().catch(() => {});
+  if (before !== stats?.sources) { cache.clear(); if (!q.value.trim()) home(); }
+}, 5000);
+</script>
+</body>
+</html>

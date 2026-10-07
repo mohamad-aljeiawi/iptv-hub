@@ -1,0 +1,188 @@
+#!/usr/bin/env bash
+# IPTV Hub management tool. install.sh puts this in /usr/local/bin/iptvhub
+set -euo pipefail
+
+CONF=/etc/iptv-hub/config
+[ -r "$CONF" ] || { echo "IPTV Hub is not installed (no $CONF). Run install.sh first."; exit 1; }
+# shellcheck disable=SC1090
+. "$CONF"
+: "${APP_DIR:?}" "${DATA_DIR:?}" "${SERVICE:?}" "${NODE_BIN:=node}" "${BACKUP_DIR:=$DATA_DIR/backups}"
+DB_FILE="$DATA_DIR/catalog.db"
+KEEP=7
+
+if [ -t 1 ]; then B=$'\e[1m'; G=$'\e[32m'; Y=$'\e[33m'; R=$'\e[31m'; C=$'\e[36m'; N=$'\e[0m'; else B=""; G=""; Y=""; R=""; C=""; N=""; fi
+need_root() { [ "$(id -u)" = 0 ] || { echo "this command needs sudo"; exit 1; }; }
+QUIET=0
+for a in "$@"; do [ "$a" = --quiet ] && QUIET=1 || true; done
+
+# Run a snippet of JS against the database. Node is guaranteed to be present, so
+# there is no dependency on the sqlite3 CLI.
+dbjs() {
+  "$NODE_BIN" --no-warnings -e "
+    const { DatabaseSync } = require('node:sqlite');
+    const db = new DatabaseSync(process.argv[1], { readOnly: ${2:-true} });
+    $1
+  " "$DB_FILE" 2>/dev/null || true
+}
+
+cmd_status() {
+  local active; active="$(systemctl is-active "$SERVICE" 2>/dev/null || true)"
+  local since; since="$(systemctl show -p ActiveEnterTimestamp --value "$SERVICE" 2>/dev/null || true)"
+  printf '\n%sIPTV Hub%s\n' "$B" "$N"
+  if [ "$active" = active ]; then printf '  status:      %srunning%s since %s\n' "$G" "$N" "${since:-?}"
+  else printf '  status:      %s%s%s\n' "$R" "${active:-stopped}" "$N"; fi
+  printf '  domain:      %s\n' "${DOMAIN:-—}"
+  printf '  port:        %s (localhost only)\n' "${PORT:-?}"
+  printf '  web server:  %s\n' "${WEB:-—}"
+  printf '  code:        %s\n' "$APP_DIR"
+  printf '  data:        %s (%s)\n' "$DB_FILE" "$(du -h "$DB_FILE" 2>/dev/null | cut -f1 || echo '—')"
+  local git_ver; git_ver="$(git -C "$APP_DIR" describe --always --dirty 2>/dev/null || echo '—')"
+  printf '  version:     %s\n' "$git_ver"
+  echo
+  dbjs "
+    const q = s => { try { return db.prepare(s).all() } catch { return [] } };
+    const srv = q('SELECT name,status,latency,last_sync,error FROM servers');
+    const items = Object.fromEntries(q('SELECT type,count(*) n FROM items GROUP BY type').map(r=>[r.type,r.n]));
+    const src = q('SELECT count(*) n FROM sources')[0]?.n ?? 0;
+    console.log('  servers:     ' + srv.length);
+    for (const s of srv) console.log('    - ' + s.name + '  ' + (s.error ? 'error: ' + s.error : 'ok ' + (s.latency ?? '?') + 'ms')
+      + (s.last_sync ? '  last sync: ' + new Date(s.last_sync).toISOString().slice(0,16).replace('T',' ') : ''));
+    console.log('  channels:    ' + (items.live ?? 0));
+    console.log('  movies:      ' + (items.vod ?? 0));
+    console.log('  series:      ' + (items.series ?? 0));
+    console.log('  sources:     ' + src);
+  "
+  local n; n="$(ls -1 "$BACKUP_DIR"/*.db 2>/dev/null | wc -l | tr -d ' ')"
+  printf '  backups:     %s (latest: %s)\n\n' "$n" "$(ls -1t "$BACKUP_DIR"/*.db 2>/dev/null | head -1 | xargs -r basename || echo '—')"
+}
+
+cmd_logs()    { journalctl -u "$SERVICE" -f -n "${2:-80}" --no-pager; }
+cmd_restart() { need_root; systemctl restart "$SERVICE"; sleep 1; systemctl is-active --quiet "$SERVICE" && echo "restarted" || { journalctl -u "$SERVICE" -n 20 --no-pager; exit 1; }; }
+cmd_start()   { need_root; systemctl start "$SERVICE"; }
+cmd_stop()    { need_root; systemctl stop "$SERVICE"; }
+
+cmd_backup() {
+  need_root
+  install -d -o "${SERVICE_USER:-root}" -g "${SERVICE_USER:-root}" -m 750 "$BACKUP_DIR"
+  local out; out="$BACKUP_DIR/catalog-$(date +%Y%m%d-%H%M%S).db"
+  "$NODE_BIN" --no-warnings -e "
+    const { DatabaseSync } = require('node:sqlite');
+    const db = new DatabaseSync(process.argv[1]);
+    db.exec(\"VACUUM INTO '\" + process.argv[2].replace(/'/g, \"''\") + \"'\");
+    db.close();
+  " "$DB_FILE" "$out"
+  chown "${SERVICE_USER:-root}:${SERVICE_USER:-root}" "$out"; chmod 640 "$out"
+  # keep only the last 7 copies
+  ls -1t "$BACKUP_DIR"/catalog-*.db 2>/dev/null | tail -n +$((KEEP + 1)) | xargs -r rm -f
+  [ "$QUIET" = 1 ] || echo "backup written: $out ($(du -h "$out" | cut -f1))"
+}
+
+cmd_update() {
+  need_root
+  command -v git >/dev/null || { echo "git is not installed"; exit 1; }
+  echo "current version: $(git -C "$APP_DIR" rev-parse --short HEAD 2>/dev/null || echo '?')"
+  cmd_backup --quiet
+  echo "backup taken before updating"
+  git -C "$APP_DIR" fetch --quiet --all
+  if git -C "$APP_DIR" merge-base --is-ancestor HEAD "@{u}" 2>/dev/null; then
+    git -C "$APP_DIR" merge --ff-only "@{u}"
+  else
+    echo "${Y}cannot fast-forward (local changes or a diverged branch). Fix it manually in $APP_DIR${N}"; exit 1
+  fi
+  # templates and the unit file may have changed; reinstall them without touching data
+  install -m 755 "$APP_DIR/scripts/iptvhub" /usr/local/bin/iptvhub
+  systemctl daemon-reload
+  systemctl restart "$SERVICE"
+  sleep 2
+  if systemctl is-active --quiet "$SERVICE"; then echo "new version: $(git -C "$APP_DIR" rev-parse --short HEAD) — running"
+  else journalctl -u "$SERVICE" -n 30 --no-pager; echo "${R}failed to start after the update. To roll back: git -C $APP_DIR reset --hard HEAD~1 && systemctl restart $SERVICE${N}"; exit 1; fi
+}
+
+cmd_admin_pass() {
+  local new="${2:-}"
+  if [ "$new" = --quiet ]; then new=""; fi
+  if [ -z "$new" ]; then
+    local p; p="$(dbjs "const r = db.prepare('SELECT v FROM kv WHERE k=?').get('admin_token'); console.log(r ? r.v : '')")"
+    p="$(printf '%s' "$p" | tr -d '\r\n')"
+    if [ -z "$p" ]; then p="$(sed -n 's/^ADMIN_TOKEN=//p' "$APP_DIR/.env" 2>/dev/null | head -1)"; fi
+    if [ "$QUIET" = 1 ]; then printf '%s\n' "$p"; else
+      printf '\n  username:  %sadmin%s\n  password:  %s%s%s\n\n  to change it: iptvhub admin-pass <new-password>\n\n' "$C" "$N" "$C" "$p" "$N"
+    fi
+    return
+  fi
+  need_root
+  [ ${#new} -ge 8 ] || { echo "use at least 8 characters"; exit 1; }
+  "$NODE_BIN" --no-warnings -e "
+    const { DatabaseSync } = require('node:sqlite');
+    const db = new DatabaseSync(process.argv[1]);
+    db.prepare('INSERT OR REPLACE INTO kv(k,v,exp) VALUES(?,?,NULL)').run('admin_token', process.argv[2]);
+    db.prepare(\"DELETE FROM kv WHERE k LIKE 'sess:%'\").run();
+    db.close();
+  " "$DB_FILE" "$new"
+  # ADMIN_TOKEN in .env takes precedence over the database, so clear it
+  sed -i 's|^ADMIN_TOKEN=.*|ADMIN_TOKEN=|' "$APP_DIR/.env"
+  systemctl restart "$SERVICE"
+  echo "admin password changed, all open sessions were invalidated"
+}
+
+cmd_uninstall() {
+  need_root
+  echo
+  echo "${B}This will remove:${N}"
+  echo "  - the $SERVICE service and the backup timer"
+  echo "  - /etc/nginx/sites-{available,enabled}/iptv-hub.conf, conf.d/iptv-hub-limits.conf, /etc/nginx/iptv-hub-proxy.conf"
+  echo "  - /etc/caddy/conf.d/iptv-hub.caddy"
+  echo "  - the $SERVICE_USER user, /usr/local/bin/iptvhub and $CONF"
+  echo "  ${Y}No other site or configuration on this server is touched.${N}"
+  echo
+  read -r -p "Are you sure? type yes: " a </dev/tty
+  [ "$a" = yes ] || { echo "Cancelled."; exit 0; }
+  read -r -p "Keep the database and backups in $DATA_DIR? [Y/n] " k </dev/tty
+
+  systemctl disable --now "$SERVICE.service" >/dev/null 2>&1 || true
+  systemctl disable --now "$SERVICE-backup.timer" >/dev/null 2>&1 || true
+  rm -f "/etc/systemd/system/$SERVICE.service" "/etc/systemd/system/$SERVICE-backup.service" "/etc/systemd/system/$SERVICE-backup.timer"
+  systemctl daemon-reload
+
+  rm -f /etc/nginx/sites-available/iptv-hub.conf /etc/nginx/sites-enabled/iptv-hub.conf \
+        /etc/nginx/conf.d/iptv-hub-limits.conf /etc/nginx/iptv-hub-proxy.conf
+  if command -v nginx >/dev/null && nginx -t >/dev/null 2>&1; then systemctl reload nginx || true; fi
+  rm -f /etc/caddy/conf.d/iptv-hub.caddy
+  if command -v caddy >/dev/null; then systemctl reload caddy >/dev/null 2>&1 || true; fi
+  rm -rf /var/www/iptv-hub-acme
+
+  if [[ "$k" =~ ^[nN] ]]; then rm -rf "$DATA_DIR"; echo "data deleted."; else echo "data kept in $DATA_DIR"; fi
+  id "$SERVICE_USER" >/dev/null 2>&1 && userdel "$SERVICE_USER" 2>/dev/null || true
+  rm -f /usr/local/bin/iptvhub; rm -rf /etc/iptv-hub
+  echo
+  echo "IPTV Hub removed. The code directory $APP_DIR is still there; delete it yourself if you want."
+  echo "To remove the certificate for $DOMAIN: certbot delete --cert-name $DOMAIN"
+}
+
+usage() {
+  cat <<EOF
+${B}iptvhub${N} — manage IPTV Hub
+
+  ${C}status${N}                 status, port, domain, servers and item counts
+  ${C}logs${N} [n]               follow the live log
+  ${C}restart${N} | start | stop
+  ${C}update${N}                 pull the latest version and restart (backs up first)
+  ${C}backup${N}                 back up now (keeps the last $KEEP copies)
+  ${C}admin-pass${N} [password]  show or change the admin password
+  ${C}uninstall${N}              clean removal
+EOF
+}
+
+case "${1:-}" in
+  status) cmd_status ;;
+  logs) cmd_logs "$@" ;;
+  restart) cmd_restart ;;
+  start) cmd_start ;;
+  stop) cmd_stop ;;
+  backup) cmd_backup ;;
+  update) cmd_update ;;
+  admin-pass|admin_pass|password) cmd_admin_pass "$@" ;;
+  uninstall) cmd_uninstall ;;
+  ''|-h|--help|help) usage ;;
+  *) usage; exit 1 ;;
+esac

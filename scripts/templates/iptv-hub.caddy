@@ -1,0 +1,24 @@
+# IPTV Hub — a standalone site file. Caddy issues and renews the certificate
+# automatically with no extra configuration.
+
+# HTTP: player paths stay on http with no redirect, because some players
+# (ExoPlayer-based ones) refuse a cross-protocol redirect from https to an
+# http stream URL.
+http://__DOMAIN__ {
+	@player path /player_api.php /panel_api.php /get.php /xmltv.php /live/* /movie/* /series/*
+	handle @player {
+		reverse_proxy 127.0.0.1:__PORT__
+	}
+	handle {
+		redir https://{host}{uri} permanent
+	}
+}
+
+# HTTPS: the whole site. Caddy sets X-Forwarded-Proto, X-Forwarded-For and Host
+# automatically. Brute-force protection for /api/login lives inside the app
+# itself (5 failed attempts per minute per IP), because stock Caddy has no
+# built-in rate limiting.
+https://__DOMAIN__ {
+	encode gzip
+	reverse_proxy 127.0.0.1:__PORT__
+}

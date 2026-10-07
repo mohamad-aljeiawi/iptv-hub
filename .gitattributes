@@ -1,0 +1,13 @@
+# Normalise to LF everywhere. Shell scripts and config templates must keep LF
+# endings or they fail on Linux, so they are listed explicitly as well.
+* text=auto eol=lf
+*.sh    text eol=lf
+scripts/iptvhub text eol=lf
+scripts/templates/* text eol=lf
+
+# Binary files: never touch line endings.
+*.db    binary
+*.png   binary
+*.jpg   binary
+*.gif   binary
+*.webp  binary

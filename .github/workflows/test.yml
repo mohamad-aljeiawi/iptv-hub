@@ -1,0 +1,42 @@
+name: Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Node ${{ matrix.node }} (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest]
+        # 22.16.0 is the floor: earlier 22.x releases ship SQLite without FTS5.
+        node: ['22.16.0', '22.x', '24.x']
+        include:
+          - os: windows-latest
+            node: '22.x'
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: ${{ matrix.node }}
+      - name: Test
+        run: npm test
+
+  shellcheck:
+    name: shellcheck
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Lint shell scripts
+        run: |
+          shellcheck --version
+          shellcheck --severity=warning install.sh scripts/install.sh scripts/iptvhub

@@ -1,0 +1,27 @@
+name: Feature request
+description: Suggest something IPTV Hub should do.
+labels: [enhancement]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Please read [what will be declined](https://github.com/mohamad-aljeiawi/iptv-hub/blob/main/CONTRIBUTING.md#things-that-will-be-declined)
+        first. Restreaming video, npm dependencies, a build step and reseller-panel features
+        are out of scope on purpose.
+  - type: textarea
+    id: problem
+    attributes:
+      label: The problem
+      description: What are you trying to do, and what gets in the way today?
+    validations:
+      required: true
+  - type: textarea
+    id: idea
+    attributes:
+      label: What you would like to happen
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives you have tried
