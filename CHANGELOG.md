@@ -7,6 +7,24 @@ project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [2.4.1] - 2026-10-07
+
+### Fixed
+
+- In-browser playback stopped after a few seconds with "this source could not be
+  played" on some providers. Four causes, all fixed:
+  - Providers drop long connections at random (measured: after 9 to 51 MB). The relay
+    now reconnects from the next byte at once and keeps feeding the same stream, so
+    neither ffmpeg nor the browser sees the drop. Still one connection at a time.
+  - The relay's 15-second timeout also applied to quiet connections, so a paused
+    direct-play video was cut by the server itself. It now covers connecting only.
+  - Chrome now claims native HLS, so the player used Chrome's own HLS engine instead
+    of hls.js. hls.js is now preferred wherever Media Source Extensions exist, with a
+    35-second first-playlist timeout and recovery from media and network errors.
+  - ffmpeg's `-readrate` stalled the HLS output while subtitles were extracted from
+    the same file. Films are now paced by the relay instead: a 20-second head start,
+    then twice the film's average bitrate.
+
 ## [2.4.0] - 2026-10-07
 
 ### Added
@@ -139,7 +157,8 @@ release splits it into modules and adds an installer.
   could not run the app: before 22.13 `node:sqlite` needs a flag, and before 22.16 the
   bundled SQLite has no FTS5.
 
-[Unreleased]: https://github.com/mohamad-aljeiawi/iptv-hub/compare/v2.4.0...HEAD
+[Unreleased]: https://github.com/mohamad-aljeiawi/iptv-hub/compare/v2.4.1...HEAD
+[2.4.1]: https://github.com/mohamad-aljeiawi/iptv-hub/compare/v2.4.0...v2.4.1
 [2.4.0]: https://github.com/mohamad-aljeiawi/iptv-hub/compare/v2.3.0...v2.4.0
 [2.3.0]: https://github.com/mohamad-aljeiawi/iptv-hub/compare/v2.2.0...v2.3.0
 [2.2.0]: https://github.com/mohamad-aljeiawi/iptv-hub/compare/v2.1.0...v2.2.0

@@ -285,3 +285,15 @@ test('a film can start in the middle (resume)', ffmpeg, async () => {
   assert.equal(s.start, 20);
   await firstSegment(cookie, s.url);
 });
+
+test('films reach ffmpeg paced: a head start, then twice real time', ffmpeg, async () => {
+  const cookie = await login();
+  const s = await start(cookie, 5);
+  await firstSegment(cookie, s.url);
+  await new Promise(r => setTimeout(r, 3000));
+  const list = await (await fetch(host + s.url, { headers: { cookie } })).text();
+  const done = list.split('\n').filter(l => l.startsWith('#EXTINF')).reduce((t, l) => t + parseFloat(l.slice(8)), 0);
+  // Unpaced, the 40-second test film is converted almost at once.
+  assert.ok(!/#EXT-X-ENDLIST/.test(list) && done < 36, `converted ${done.toFixed(1)}s after ~3s: paced`);
+  assert.ok(done >= 8, `converted ${done.toFixed(1)}s: the head start went through`);
+});

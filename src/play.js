@@ -71,11 +71,10 @@ export function plan(probe, live, audioIndex = null) {
 export function ffmpegArgs(p, url, dir, { live, start = 0 }) {
   const a = ['-hide_banner', '-loglevel', 'error', '-nostdin', '-user_agent', UA,
     '-reconnect', '1', '-reconnect_on_network_error', '1', '-reconnect_delay_max', '5', '-rw_timeout', '15000000'];
-  // Films are read at twice real time after a quick start, so a paused or
-  // abandoned film does not pull the whole file, and playback at up to 1.5x never
-  // catches up with the conversion. Live input is real time already.
-  if (!live) a.push('-readrate', '2', '-readrate_initial_burst', '20');
-  else a.push('-reconnect_streamed', '1');
+  // Films are paced by the relay that feeds ffmpeg (see relayUpstream), not by
+  // ffmpeg's -readrate: that option stalls the HLS output while subtitles are being
+  // extracted from the same input.
+  if (live) a.push('-reconnect_streamed', '1');
   if (start > 0) a.push('-ss', String(start));
   a.push('-i', url);
   if (p.video != null) a.push('-map', `0:${p.video}`);
@@ -200,10 +199,13 @@ for (const d of fs.readdirSync(PLAY_DIR)) if (/^[\w-]{16}$/.test(d)) fs.rmSync(p
 // One plain HTTP(S) request with no connection pool, so the socket closes with the
 // response. Redirects are followed by hand (Xtream panels often bounce to a
 // load-balanced host).
+// The 15-second limit covers getting a response only: once the provider answers, a
+// quiet connection (a paused viewer, a full buffer) is not cut.
 function openUpstream(url, headers, hops = 0) {
   return new Promise((ok, bad) => {
     const lib = url.startsWith('https:') ? https : http;
     const req = lib.get(url, { headers, agent: false, timeout: 15000 }, res => {
+      req.setTimeout(0);
       if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location && hops < 5) {
         res.resume(); req.destroy();
         return openUpstream(new URL(res.headers.location, url).href, headers, hops + 1).then(ok, bad);
@@ -226,28 +228,98 @@ function dropUpstream(s) {
 }
 
 const PASS = ['content-type', 'content-length', 'content-range', 'accept-ranges', 'last-modified'];
+const RESUME_TRIES = 6;   // reconnects in a row before a dropped stream is given up
+const sleep = ms => new Promise(r => setTimeout(r, ms));
 
-async function relayUpstream(req, res, s) {
+// The last byte a response will deliver, or null when the length is unknown.
+function lastByte(r, start) {
+  const cr = /bytes\s+(\d+)-(\d+)\//.exec(r.headers['content-range'] || '');
+  if (cr) return +cr[2];
+  const len = +r.headers['content-length'];
+  return Number.isFinite(len) && len > 0 ? start + len - 1 : null;
+}
+
+// Pass one upstream response on until it ends, closes or fails. It pauses while the
+// receiver is full, and while paceDelay() says it is ahead of schedule.
+const pump = (up, res, onBytes, paceDelay = () => 0) => new Promise(done => {
+  let over = false, full = false, timer = null;
+  const go = () => { if (!over && !full && !timer) up.res.resume(); };
+  const onDrain = () => { full = false; go(); };
+  const onData = chunk => {
+    onBytes(chunk.length);
+    if (!res.write(chunk)) { full = true; up.res.pause(); res.once('drain', onDrain); }
+    const wait = paceDelay();
+    if (wait > 0 && !timer) { up.res.pause(); timer = setTimeout(() => { timer = null; go(); }, wait); }
+  };
+  const finish = () => { if (over) return; over = true; clearTimeout(timer); up.res.off('data', onData); res.off('drain', onDrain); done(); };
+  up.res.on('data', onData);
+  for (const ev of ['end', 'close', 'error', 'aborted']) up.res.once(ev, finish);
+});
+
+const BURST = 20;   // seconds of film delivered to ffmpeg at full speed
+const PACE = 2;     // then this many times the film's average bitrate
+
+async function relayUpstream(req, res, s, { pace = false } = {}) {
   // Opening is serialized per session and the newest request wins: it closes the
   // previous connection first, and a request overtaken while waiting gives up.
   const turn = s.turn = (s.turn || 0) + 1;
-  const headers = { 'User-Agent': UA };
-  if (req.headers.range) headers.Range = req.headers.range;
-  const up = await (s.opening = (s.opening || Promise.resolve()).then(async () => {
+  const current = () => turn === s.turn && !res.destroyed && sessions.has(s.id);
+  const asked = req.headers.range || null;
+  const range = /^bytes=(\d+)-(\d*)$/.exec(asked || '');
+  const open = rangeHeader => (s.opening = (s.opening || Promise.resolve()).then(async () => {
     await dropUpstream(s);
-    if (turn !== s.turn || res.destroyed || !sessions.has(s.id)) return null;
+    if (!current()) return null;
+    const headers = { 'User-Agent': UA };
+    if (rangeHeader) headers.Range = rangeHeader;
     try { const u = await openUpstream(s.url, headers); s.upstream = u.req; return u; } catch { return 'error'; }
   }));
+
+  let up = await open(asked);
   if (up === null) { res.destroy(); return; }
   if (up === 'error') { if (!res.headersSent) send(req, res, 502, 'upstream unreachable'); return; }
-  res.on('close', () => { if (s.upstream === up.req) dropUpstream(s); else up.req.destroy(); });
+  res.on('close', () => { if (up && s.upstream === up.req) dropUpstream(s); });
   if (up.res.statusCode >= 400) { up.req.destroy(); send(req, res, up.res.statusCode === 416 ? 416 : 502, 'upstream error'); return; }
   const out = { 'Cache-Control': 'no-store' };
   for (const h of PASS) if (up.res.headers[h]) out[h] = up.res.headers[h];
   res.writeHead(up.res.statusCode, out);
   if (req.method === 'HEAD') { up.req.destroy(); res.end(); return; }
-  up.res.on('close', () => { if (!res.writableEnded) res.destroy(); });   // replaced or cut off
-  up.res.pipe(res);
+
+  // Providers drop long connections, some every few seconds. Reconnect from the next
+  // byte (a channel: from the live edge) and keep feeding the same response, so
+  // neither ffmpeg nor the browser ever sees the drop. The dropped connection is
+  // already gone, so this is still one connection at a time.
+  let pos = up.res.statusCode === 206 && range ? +range[1] : 0;
+  const wantEnd = range && range[2] ? +range[2] : null;
+  const end = s.live ? null : lastByte(up.res, pos);
+  const resumable = s.live || (end !== null && (!asked || range));
+  // A film read by ffmpeg goes out at a head start of BURST seconds, then PACE times
+  // its average bitrate, so a paused or abandoned film does not pull the whole file
+  // and playback up to 1.5x never catches up with the conversion.
+  const bytesPerSec = pace && !s.live && end !== null && s.plan?.duration ? (end + 1) / s.plan.duration : 0;
+  const t0 = Date.now();
+  let sent = 0;
+  const paceDelay = () => (bytesPerSec ? (sent - BURST * bytesPerSec) / (PACE * bytesPerSec) * 1000 - (Date.now() - t0) : 0);
+  let tries = 0;
+  for (;;) {
+    await pump(up, res, n => { pos += n; sent += n; tries = 0; }, paceDelay);
+    if (!current()) { if (!res.destroyed && turn !== s.turn) res.destroy(); return; }
+    if (end !== null && pos > end) { res.end(); return; }
+    if (!resumable) { res.end(); return; }
+    let next = null;
+    while (!next && tries < RESUME_TRIES) {
+      // The first reconnect goes out at once (it usually works); then back off.
+      await sleep(tries === 0 ? 0 : Math.min(3000, 250 * 2 ** (tries - 1)));
+      tries++;
+      if (!current()) return;
+      const n = await open(s.live ? null : `bytes=${pos}-${wantEnd ?? ''}`);
+      if (n === null) return;
+      if (n !== 'error' && (s.live ? n.res.statusCode < 400 : n.res.statusCode === 206)) next = n;
+      else if (n !== 'error') n.req.destroy();
+    }
+    if (!next) { console.error(`play ${s.id}: upstream dropped at byte ${pos}, gave up after ${RESUME_TRIES} reconnects`); res.destroy(); return; }
+    console.log(`play ${s.id}: upstream dropped, resumed at byte ${pos} (try ${tries})`);
+    up = next;
+  }
 }
 
 // ffprobe and ffmpeg read from here: 127.0.0.1 only, on a port of its own, and a
@@ -259,7 +331,7 @@ function inputBase() {
       const [, id, secret] = req.url.split('/');
       const s = sessions.get(id);
       if (!s || !secret || secret !== s.secret) { res.writeHead(404).end(); return; }
-      relayUpstream(req, res, s).catch(() => res.destroy());
+      relayUpstream(req, res, s, { pace: true }).catch(() => res.destroy());
     });
     srv.listen(0, '127.0.0.1', () => { srv.unref(); ok(`http://127.0.0.1:${srv.address().port}`); });
   });

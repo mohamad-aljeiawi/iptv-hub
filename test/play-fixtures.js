@@ -50,9 +50,11 @@ export function probeFile(file) {
 
 // vod: { streamId: [title, file] }, live: { streamId: [title, file] },
 // series: { seriesId: [title, { season: [file, ...] }] }.
+// dropEvery: cut every stream connection after that many bytes, like providers that
+// drop long connections at random.
 // Live files are sent at roughly real time and never end on their own, like a
 // real channel, until the client goes away.
-export function fakeProvider(dir, { vod, live, series = {} }) {
+export function fakeProvider(dir, { vod, live, series = {}, dropEvery = 0 }) {
   // Episode id = series id * 1000 + season * 100 + episode number.
   const episodes = new Map();
   for (const [sid, [, seasons]] of Object.entries(series))
@@ -89,6 +91,8 @@ export function fakeProvider(dir, { vod, live, series = {} }) {
     active.set(key, (active.get(key) || 0) + 1);
     peak.set(key, Math.max(peak.get(key) || 0, active.get(key)));
     res.on('close', () => active.set(key, active.get(key) - 1));
+    let sent = 0;
+    const cut = n => { sent += n; if (dropEvery && sent >= dropEvery) { res.socket.destroy(); return true; } return false; };
 
     const file = path.join(dir, entry[1]);
     const size = fs.statSync(file).size;
@@ -99,7 +103,9 @@ export function fakeProvider(dir, { vod, live, series = {} }) {
       const iv = setInterval(() => {
         const n = fs.readSync(fd, buf, 0, buf.length, pos % size);
         pos += n;
-        if (!res.write(buf.subarray(0, n))) { /* keep pace; drop nothing */ }
+        if (res.destroyed) return;
+        res.write(buf.subarray(0, n));
+        cut(n);
       }, 40);
       res.on('close', () => { clearInterval(iv); fs.closeSync(fd); });
       return;
@@ -108,7 +114,9 @@ export function fakeProvider(dir, { vod, live, series = {} }) {
     const start = r ? +r[1] : 0, end = r && r[2] ? Math.min(+r[2], size - 1) : size - 1;
     res.writeHead(r ? 206 : 200, { 'Content-Type': m[1] === 'movie' && file.endsWith('.mp4') ? 'video/mp4' : 'video/x-matroska',
       'Accept-Ranges': 'bytes', 'Content-Length': end - start + 1, ...(r ? { 'Content-Range': `bytes ${start}-${end}/${size}` } : {}) });
-    fs.createReadStream(file, { start, end }).pipe(res);
+    const rs = fs.createReadStream(file, { start, end, highWaterMark: 16 * 1024 });
+    rs.on('data', chunk => { if (res.destroyed) return rs.destroy(); res.write(chunk); if (cut(chunk.length)) rs.destroy(); });
+    rs.on('end', () => res.end());
   });
   return {
     server, active: k => active.get(k) || 0, peak: k => peak.get(k) || 0,

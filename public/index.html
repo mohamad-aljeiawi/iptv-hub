@@ -779,12 +779,28 @@ async function attach(token, t = 0) {
     video.src = sess.url;
     if (t > 0) video.addEventListener('loadedmetadata', () => { video.currentTime = t; }, { once: true });
   } else {
-    const Hls = nativeHls ? null : await loadHls().catch(() => null);
+    // hls.js first wherever the browser has Media Source Extensions: Chrome now
+    // claims native HLS too, but its player cannot be tuned or recovered. Native HLS
+    // is only the fallback (older iPhones).
+    const Hls = await loadHls().catch(() => null);
     if (token !== playToken) return;
     if (Hls?.isSupported()) {
-      // Films start from the beginning of what has been converted, not its end.
-      hls = new Hls(sess.live ? {} : { startPosition: 0 });
-      hls.on(Hls.Events.ERROR, (_, d) => { if (d.fatal) failover('تعذر تشغيل هذا المصدر', absNow()); });
+      hls = new Hls({
+        // Films start from the beginning of what has been converted, not its end.
+        ...(sess.live ? {} : { startPosition: 0 }),
+        // The first playlist can take a while: the server answers once ffmpeg has
+        // written the first segment, up to 30 seconds for a re-encode.
+        manifestLoadingTimeOut: 35000, manifestLoadingMaxRetry: 2,
+        levelLoadingTimeOut: 35000, fragLoadingTimeOut: 35000,
+      });
+      // Recover before giving up: twice for media errors, twice for network errors.
+      let mediaFixes = 0, netFixes = 0;
+      hls.on(Hls.Events.ERROR, (_, d) => {
+        if (!d.fatal) return;
+        if (d.type === Hls.ErrorTypes.MEDIA_ERROR && mediaFixes++ < 2) return hls.recoverMediaError();
+        if (d.type === Hls.ErrorTypes.NETWORK_ERROR && netFixes++ < 2) return hls.startLoad();
+        failover('تعذر تشغيل هذا المصدر', absNow());
+      });
       hls.loadSource(sess.url);
       hls.attachMedia(video);
     } else if (nativeHls) video.src = sess.url;
