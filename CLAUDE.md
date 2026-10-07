@@ -26,7 +26,7 @@ an English comment explaining what it is. Everything else: English.
 - **No external dependencies.** Node 22.16+ built-ins only (`node:sqlite`,
   `node:test`, `fetch`). Do not add a `dependencies` block to `package.json`.
 - **Module dependencies flow one way**, no cycles:
-  `config -> db -> normalize/http -> sync -> resolve -> xtream -> api -> index`.
+  `config -> db -> normalize/http -> sync -> resolve -> xtream/watch -> api -> index`.
   `http.js` must not import a feature module; use the `onClear()` hook instead.
 - **Migrations are append-only.** Add a new function at the end of `MIGRATIONS`
   in `src/db.js`; never edit an existing one.

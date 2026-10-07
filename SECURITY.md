@@ -27,5 +27,8 @@ though ideas for improving them are welcome as normal issues:
 - Player passwords appear in playlist and stream URLs, as the Xtream protocol requires,
   and are stored in plain text so they can be shown to the admin.
 - Player paths (`/player_api.php`, `/get.php`, `/xmltv.php`, `/live/`, `/movie/`,
-  `/series/`) are served over plain HTTP on purpose, so ExoPlayer-based players keep
-  working. The README explains why.
+  `/series/`) and the in-browser watch page (`/watch/`, `/w/`) are served over plain
+  HTTP on purpose, so ExoPlayer-based players keep working and browsers can follow
+  the redirect to the provider. The README explains why. The watch page never sees a
+  password or session cookie; it uses a signed token for one item that expires after
+  12 hours.

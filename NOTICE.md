@@ -25,6 +25,7 @@ interface loads them from a third party when a browser opens it.
 | Resource | Loaded from | Licence | Copyright |
 |---|---|---|---|
 | Readex Pro font | Google Fonts (`fonts.googleapis.com`) | SIL Open Font License 1.1 | Copyright 2019 The Readex Pro Project Authors |
+| hls.js 1.7.3 (live channels on the watch page, only in browsers without native HLS) | jsDelivr (`cdn.jsdelivr.net`), pinned with a Subresource Integrity hash | Apache License 2.0 | Copyright (c) 2017 Dailymotion |
 
 If you self-host the font instead of loading it from Google Fonts, the OFL requires its
 licence text to travel with the font files.

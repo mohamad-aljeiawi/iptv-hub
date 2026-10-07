@@ -64,6 +64,7 @@ section h2{font-size:1.1rem;font-weight:500;margin:28px 0 12px}
 .ch .srcs{position:static;background:none;padding:0}
 .empty{color:var(--muted);padding:40px 0;max-width:46ch}
 .primary{background:var(--signal);color:var(--ink);border:0;border-radius:var(--r-sm);padding:9px 18px;cursor:pointer;font-weight:500}
+a.primary{display:inline-block;text-decoration:none;font-size:1.05rem;padding:12px 26px}
 
 dialog{background:var(--panel);color:var(--text);border:1px solid var(--line);border-radius:var(--r-lg);padding:0;width:min(960px,96vw);max-height:92vh}
 dialog::backdrop{background:rgba(5,12,20,.8)}
@@ -141,6 +142,8 @@ form .full{grid-column:1/-1}
   <div class="dlg-head"><h3 id="pTitle"></h3><button class="x" type="button" data-close aria-label="إغلاق">×</button></div>
   <div class="dlg-body">
     <video id="video" controls playsinline></video>
+    <!-- "Play in the browser": opens the plain-HTTP watch page (HTTPS sites only) -->
+    <a class="primary" id="watchLink" target="_blank" rel="noopener" hidden>▶ تشغيل في المتصفح</a>
     <div class="status" id="pStatus"></div>
     <h4>المصادر</h4>
     <div class="row" id="pSources"></div>
@@ -342,10 +345,25 @@ function updateExternal() {
   const a = $('#openAndroid');
   a.hidden = !url || !/Android/i.test(navigator.userAgent);
   if (url) { const u = new URL(url); a.href = `intent://${u.host}${u.pathname}${u.search}#Intent;scheme=${u.protocol.slice(0, -1)};type=video/*;end`; }
+  const w = watchUrl(), link = $('#watchLink');
+  link.hidden = !viaWatchPage || !w;
+  if (w) link.href = w;
+}
+
+// On an HTTPS page the browser blocks the providers' plain-HTTP streams, so
+// playback opens the plain-HTTP watch page instead (see src/watch.js). The video
+// still goes straight from the provider to the browser, never through this server.
+const viaWatchPage = location.protocol === 'https:';
+video.hidden = viaWatchPage;
+function watchUrl() {
+  const token = item.type === 'series' ? episode?.watch : item.watch;
+  return token ? `http://${location.host}/watch/${token}?src=${item.sources[srcIdx].id}` : null;
 }
 
 function play() {
   stop(); updateExternal();
+  // User-facing: "Press 'Play in the browser' to open the player in a new tab".
+  if (viaWatchPage) return status('اضغط «تشغيل في المتصفح» لفتح المشغل في صفحة جديدة');
   const s = item.sources[srcIdx];
   status(`جاري التشغيل من ${s.server}`);
   stallTimer = setTimeout(() => failover('المصدر لم يستجب خلال 12 ثانية'), 12000);
@@ -363,8 +381,7 @@ function failover(reason) {
     srcIdx++; drawSources(); status(`${reason}، جاري التبديل إلى ${item.sources[srcIdx].server}`); setTimeout(play, 400);
   } else {
     stop();
-    const hint = location.protocol === 'https:' ? ' روابط IPTV غالباً HTTP والمتصفح يمنعها داخل موقع HTTPS، لذلك' : '';
-    status(`${reason}.${hint} استخدم مشغلاً خارجياً من الأزرار بالأسفل.`, true);
+    status(`${reason}. استخدم مشغلاً خارجياً من الأزرار بالأسفل.`, true);
   }
 }
 

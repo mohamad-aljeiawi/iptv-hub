@@ -76,7 +76,7 @@ that defeats de-duplication, add the raw names to `test/normalize.test.js` and f
   A new user-facing message goes next to the existing ones, with an English comment
   saying what it is.
 - **Module dependencies flow one way**, with no cycles:
-  `config -> db -> normalize/http -> sync -> resolve -> xtream -> api -> index`.
+  `config -> db -> normalize/http -> sync -> resolve -> xtream/watch -> api -> index`.
   `http.js` must not import a feature module; use the `onClear()` hook instead.
 - **Migrations are append-only.** Add a new function at the end of `MIGRATIONS` in
   `src/db.js`. Never edit one that has shipped, because existing databases have already

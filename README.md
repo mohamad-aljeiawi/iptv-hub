@@ -198,6 +198,28 @@ cross-protocol redirects: if the playlist URL is `https` and the upstream stream
 `http`, playback stops. The web interface itself redirects to HTTPS as normal. That is
 why TiviMate works on both `http://iptv.example.com` and `https://iptv.example.com`.
 
+### Playing in the browser without using your bandwidth
+
+A browser has the same problem in a stricter form: an HTTPS page is not allowed to
+play an `http://` stream at all (Chrome rewrites the URL to `https://` and the
+provider refuses it). So on an HTTPS site, "play in the browser" opens a small
+**plain-HTTP watch page** at `/watch/...` in a new tab. Its video gets the same 302
+players get, so the stream goes straight from the provider to the browser and never
+through your server.
+
+The watch page does not use your password or login cookie. Its link carries a signed
+token for that one item, valid for 12 hours, and it stops working as soon as the user
+is disabled or expires.
+
+What plays depends on the browser and the file, not on IPTV Hub:
+
+| Content | Plays in the browser? |
+|---|---|
+| Movies and episodes in MP4 (H.264/AAC) | Yes |
+| MKV, HEVC, or AC3/EAC3 audio | Usually not: browsers cannot decode them. Use the external-player buttons |
+| Live channels in Safari, on iPhone and Android | Yes, natively |
+| Live channels in desktop Chrome and Firefox | Yes if the provider sends CORS headers (`Access-Control-Allow-Origin`), through [hls.js](https://github.com/video-dev/hls.js) loaded from jsDelivr |
+
 ## Running locally
 
 Requires Node.js 22.16 or newer. Earlier 22.x releases either lack `node:sqlite` without
@@ -250,7 +272,7 @@ The real `.env` holds your admin password and is never committed.
 | A local user's device count is reported to players but not enforced | Each provider's own `max_connections` still applies upstream |
 | The "did you mean" fallback can pick an unrelated word when nothing really matches. On the 119,858-item catalogue, `بي ان سبورت` was "corrected" to `بي ان سوره`, because the providers only spell that channel in Latin script | Search for the spelling the provider uses (`bein`) |
 | EPG comes from the provider that carries the most channels, so channels that exist only on another provider may have no guide | None yet |
-| The browser player has no HLS library: live channels play only where the browser plays HLS natively, and an HTTPS page cannot load HTTP streams | Use the "open in device player", VLC download or copy-link buttons |
+| In-browser playback depends on the file and the provider: MKV/HEVC/AC3 do not decode in browsers, and live channels in desktop Chrome or Firefox need the provider to send CORS headers ([details](#playing-in-the-browser-without-using-your-bandwidth)) | Use the "open in device player", VLC download or copy-link buttons |
 | The installer targets apt-based systems (Ubuntu 22.04/24.04, Debian 12) | On other distributions, run `npm start` under your own service manager and proxy |
 
 ## Development
@@ -285,7 +307,7 @@ test/           mock-xtream.js plus node:test suites
 ```
 
 Module dependencies flow one way, with no cycles:
-`config -> db -> normalize/http -> sync -> resolve -> xtream -> api -> index`.
+`config -> db -> normalize/http -> sync -> resolve -> xtream/watch -> api -> index`.
 
 ### Migrations
 

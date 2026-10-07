@@ -7,6 +7,23 @@ project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [2.2.0] - 2026-10-07
+
+### Added
+
+- In-browser playback on HTTPS sites, without relaying video. "Play in the browser"
+  opens a plain-HTTP watch page whose video gets the same 302 players get, so the
+  stream goes straight from the provider to the browser. The page is reached with a
+  signed token for one item (valid 12 hours, revoked with the user) instead of a
+  password or cookie. It fails over between sources, and plays live channels with
+  hls.js in browsers without native HLS.
+
+### Changed
+
+- nginx, Caddy, Apache and Traefik configs keep `/watch/` and `/w/` on plain HTTP,
+  like the player paths. `deploy.sh` and `install.sh` rewrite the site file on their
+  next run.
+
 ## [2.1.0] - 2026-10-07
 
 ### Added
@@ -63,6 +80,7 @@ release splits it into modules and adds an installer.
   could not run the app: before 22.13 `node:sqlite` needs a flag, and before 22.16 the
   bundled SQLite has no FTS5.
 
-[Unreleased]: https://github.com/mohamad-aljeiawi/iptv-hub/compare/v2.1.0...HEAD
+[Unreleased]: https://github.com/mohamad-aljeiawi/iptv-hub/compare/v2.2.0...HEAD
+[2.2.0]: https://github.com/mohamad-aljeiawi/iptv-hub/compare/v2.1.0...v2.2.0
 [2.1.0]: https://github.com/mohamad-aljeiawi/iptv-hub/compare/v2.0.0...v2.1.0
 [2.0.0]: https://github.com/mohamad-aljeiawi/iptv-hub/releases/tag/v2.0.0
