@@ -247,6 +247,22 @@ grainy films can stutter when the re-encode slots are all in use; lower
 The "external player" buttons stay under every title. They use the normal player links,
 which cost the server nothing.
 
+### The interface
+
+Home opens on a rotating banner of new films, then rows: Continue watching, latest
+films, latest series and live channels. Films, Series and Live TV each have a page with
+category chips and a grid that loads more as you scroll. On phones a tab bar at the
+bottom replaces the top menu.
+
+It is built to stay light on cheap phones: no blur effects, animations only on
+`transform` and `opacity`, posters loaded only when they come into view, cards off
+screen skipped by the browser (`content-visibility`), and the web font loaded without
+blocking the first paint. Measured on an emulated 412 px phone with the CPU slowed 4x,
+against the previous interface on the same catalogue: first paint 48 ms instead of 140,
+home usable in 180 ms instead of 289, 9 images (25 KB) on first load instead of 35
+(281 KB), and no slow frames while scrolling, before or after. The price is more layout
+work at load (189 ms instead of 122), for a page with more on it.
+
 ### The player
 
 A full-screen player in the style of Netflix, in Arabic and right to left:

@@ -113,6 +113,25 @@ export async function apiRoutes(ctx) {
       sources: r.n_src, img: r.has_img ? `/img/${r.id}` : null }))), true;
   }
 
+  // The browse pages: categories of one type with how many titles each...
+  if (p === '/api/categories') {
+    const type = ['live', 'vod', 'series'].includes(qp('type')) ? qp('type') : 'vod';
+    const rows = db.prepare(`SELECT c.id, c.name, count(i.id) n FROM categories c JOIN items i ON i.category_id=c.id AND i.type=?
+      WHERE c.type=? GROUP BY c.id ORDER BY n DESC`).all(type, type);
+    return send(req, res, 200, rows), true;
+  }
+  // ...and one page of titles, optionally in one category: newest first, channels in
+  // the provider's own order.
+  if (p === '/api/browse') {
+    const type = ['live', 'vod', 'series'].includes(qp('type')) ? qp('type') : 'vod';
+    const cat = +qp('cat') || null, offset = Math.max(0, +qp('offset') || 0), limit = Math.min(Math.max(1, +qp('limit') || 40), 100);
+    const order = type === 'live' ? 'i.category_id, i.id' : 'i.added DESC, i.id DESC';
+    const rows = db.prepare(`SELECT ${COLS} FROM items i WHERE i.type=? ${cat ? 'AND i.category_id=?' : ''} ORDER BY ${order} LIMIT ? OFFSET ?`)
+      .all(...(cat ? [type, cat] : [type]), limit + 1, offset);
+    return send(req, res, 200, { more: rows.length > limit, items: rows.slice(0, limit).map(r => ({ id: r.id, type: r.type, title: r.title,
+      year: r.year, rating: r.rating, sources: r.n_src, img: r.has_img ? `/img/${r.id}` : null })) }), true;
+  }
+
   if (p === '/api/stats') {
     const c = Object.fromEntries(db.prepare('SELECT type, count(*) n FROM items GROUP BY type').all().map(r => [r.type, r.n]));
     const servers = db.prepare('SELECT * FROM servers').all().map(publicServer);

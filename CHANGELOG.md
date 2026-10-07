@@ -7,6 +7,37 @@ project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [2.5.0] - 2026-10-07
+
+### Changed
+
+- A new interface: a sticky top bar with sections (Home, Films, Series, Live TV),
+  search and an account menu; a bottom tab bar on phones; a darker theme with an
+  amber-to-orange accent.
+- Home opens on a rotating banner of new films (paused off screen, never with reduced
+  motion), followed by horizontal rows with snap scrolling: Continue watching, latest
+  films, latest series, live channels.
+- Poster cards with a rating badge and a hover lift on devices that hover; titles
+  without a poster get a colour tile from the title instead of a grey box. Channel
+  tiles with a live badge.
+- The details sheet takes the title's colour and fills the screen on phones; login and
+  settings restyled. The server status line moved into Settings.
+- Provider titles keep their own text direction, so English titles no longer lose their
+  punctuation in the right-to-left page.
+
+### Added
+
+- Films, Series and Live TV pages with category chips and a grid that loads 40 more as
+  you scroll, backed by `/api/categories` and `/api/browse`.
+
+### Performance
+
+- The web font no longer blocks the first paint, posters load only when they come into
+  view, and off-screen cards and banner slides skip rendering. On an emulated phone
+  with a 4x slower CPU: first paint 48 ms (was 140), home usable in 180 ms (was 289),
+  9 images and 25 KB on first load (was 35 and 281 KB), and no slow frames while
+  scrolling.
+
 ## [2.4.1] - 2026-10-07
 
 ### Fixed
@@ -157,7 +188,8 @@ release splits it into modules and adds an installer.
   could not run the app: before 22.13 `node:sqlite` needs a flag, and before 22.16 the
   bundled SQLite has no FTS5.
 
-[Unreleased]: https://github.com/mohamad-aljeiawi/iptv-hub/compare/v2.4.1...HEAD
+[Unreleased]: https://github.com/mohamad-aljeiawi/iptv-hub/compare/v2.5.0...HEAD
+[2.5.0]: https://github.com/mohamad-aljeiawi/iptv-hub/compare/v2.4.1...v2.5.0
 [2.4.1]: https://github.com/mohamad-aljeiawi/iptv-hub/compare/v2.4.0...v2.4.1
 [2.4.0]: https://github.com/mohamad-aljeiawi/iptv-hub/compare/v2.3.0...v2.4.0
 [2.3.0]: https://github.com/mohamad-aljeiawi/iptv-hub/compare/v2.2.0...v2.3.0
