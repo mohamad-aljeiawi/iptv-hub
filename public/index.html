@@ -71,16 +71,91 @@ dialog::backdrop{background:rgba(5,12,20,.8)}
 .dlg-head h3{margin:0;font-size:1.1rem;font-weight:500}
 .x{background:none;border:0;font-size:1.4rem;cursor:pointer;color:var(--muted);line-height:1}
 .dlg-body{padding:18px;overflow:auto;max-height:calc(92vh - 60px)}
-video{width:100%;aspect-ratio:16/9;background:#000;border-radius:var(--r-sm);display:block}
-.pv{background:#000;border-radius:var(--r-sm);overflow:hidden}
-.pv video{border-radius:0;cursor:pointer}
-.pv-bar{display:flex;align-items:center;gap:10px;padding:8px 12px;background:#0B1624;direction:ltr}
-.pv-bar button{background:none;border:0;color:var(--text);font-size:1.05rem;cursor:pointer;min-width:30px;padding:4px}
-.pv-bar input[type=range]{flex:1;min-width:0;accent-color:var(--signal)}
-.pv-t{font-size:.8rem;color:var(--muted);font-variant-numeric:tabular-nums;white-space:nowrap}
-.pv:fullscreen{display:flex;flex-direction:column;justify-content:center}
-.pv:fullscreen video{flex:1;min-height:0;aspect-ratio:auto}
-.live-badge{color:var(--live);font-weight:500}
+/* ── title details ── */
+.det{width:min(980px,96vw)}
+.det-hero{display:grid;grid-template-columns:150px 1fr auto;gap:18px;padding:18px;border-bottom:1px solid var(--line)}
+.det-hero img,.det-hero .ph{width:150px;aspect-ratio:2/3;object-fit:cover;border-radius:var(--r-sm);background:var(--ink)}
+.det-hero h3{margin:0 0 6px;font-size:1.35rem;font-weight:700}
+.det-hero .x{align-self:start}
+.det-plot{color:var(--muted);font-size:.9rem;margin:8px 0 14px;max-width:62ch;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.cta{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.cta .primary{font-size:1.02rem;padding:11px 24px;font-weight:700}
+.cta .ghost{padding:10px 18px}
+.cta small{display:block;font-weight:400;opacity:.8;font-size:.78rem}
+.linkish{background:none;border:0;color:var(--muted);cursor:pointer;font-size:.85rem;text-decoration:underline;padding:4px}
+@media (max-width:600px){ .cw{grid-auto-columns:200px} .det-hero{grid-template-columns:90px 1fr auto;gap:12px} .det-hero img,.det-hero .ph{width:90px} }
+
+/* ── episode cards (details and in-player drawer) ── */
+.season-pick{background:var(--panel2);color:var(--text);border:1px solid var(--line);border-radius:var(--r-sm);padding:7px 12px;font:inherit}
+.ep-list{display:flex;flex-direction:column;gap:6px;margin-top:12px}
+.ep{display:grid;grid-template-columns:auto 128px 1fr;gap:12px;align-items:center;text-align:start;background:none;border:1px solid transparent;border-radius:var(--r-sm);padding:8px;cursor:pointer;color:inherit}
+.ep:hover{background:var(--panel2)}
+.ep[aria-current=true]{border-color:var(--signal);background:rgba(255,181,71,.08)}
+.ep .n{color:var(--muted);font-size:1.1rem;min-width:1.6em;text-align:center}
+.ep .thumb{position:relative;width:128px;aspect-ratio:16/9;border-radius:4px;overflow:hidden;background:var(--ink)}
+.ep .thumb img{width:100%;height:100%;object-fit:cover;display:block}
+.ep .bar{position:absolute;inset-inline:0;bottom:0;height:4px;background:rgba(255,255,255,.25)}
+.ep .bar i{display:block;height:100%;background:var(--signal)}
+.ep .t{font-weight:500}
+.ep .d{color:var(--muted);font-size:.82rem}
+
+/* ── continue watching ── */
+.cw{display:grid;grid-auto-flow:column;grid-auto-columns:260px;gap:12px;overflow-x:auto;padding-bottom:6px}
+.cw-card{position:relative;background:var(--panel);border-radius:var(--r-sm);overflow:hidden;cursor:pointer;text-align:start;border:0;padding:0;color:inherit}
+.cw-card .art{position:relative;aspect-ratio:16/9;background:var(--panel2)}
+.cw-card .art img{width:100%;height:100%;object-fit:cover;display:block}
+.cw-card .bar{position:absolute;inset-inline:0;bottom:0;height:4px;background:rgba(255,255,255,.25)}
+.cw-card .bar i{display:block;height:100%;background:var(--signal)}
+.cw-meta{padding:8px 10px}
+.cw-meta b{display:block;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cw-meta span{color:var(--muted);font-size:.8rem}
+.cw-card .forget{position:absolute;top:6px;inset-inline-end:6px;width:30px;height:30px;border-radius:50%;border:0;background:rgba(5,12,20,.75);color:var(--text);cursor:pointer;font-size:1rem}
+.cw-card .forget:hover{background:var(--live)}
+
+/* ── full-screen player ── */
+.pl{position:fixed;inset:0;z-index:50;background:#000;color:#fff;overflow:hidden}
+.pl video{position:absolute;inset:0;width:100%;height:100%;aspect-ratio:auto;border-radius:0;background:#000;object-fit:contain}
+.pl video::cue{background:rgba(0,0,0,.65);font-size:1.4em;line-height:1.35}
+.pl-top,.pl-bottom{position:absolute;inset-inline:0;padding:16px 22px;transition:opacity .25s}
+.pl-top{top:0;display:flex;align-items:center;gap:14px;background:linear-gradient(rgba(0,0,0,.75),transparent)}
+.pl-bottom{bottom:0;background:linear-gradient(transparent,rgba(0,0,0,.85));padding-top:40px}
+.pl.idle .pl-top,.pl.idle .pl-bottom{opacity:0;pointer-events:none}
+.pl.idle{cursor:none}
+.pl button{background:none;border:0;color:#fff;cursor:pointer;font:inherit}
+.pl-ic{font-size:1.45rem;min-width:44px;min-height:44px;border-radius:50%;display:inline-grid;place-items:center}
+.pl-ic:hover{background:rgba(255,255,255,.12)}
+.pl-ic small{font-size:.62rem;font-weight:700;margin-top:-4px}
+.pl-title{min-width:0}
+.pl-title b{display:block;font-size:1.05rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pl-title span{color:#c8d2de;font-size:.85rem}
+.pl-progress{display:flex;align-items:center;gap:12px;direction:ltr}
+.pl-progress input{flex:1;min-width:0;accent-color:var(--signal);height:20px;cursor:pointer}
+.pl-progress span{font-size:.85rem;font-variant-numeric:tabular-nums;color:#dbe3ec;white-space:nowrap}
+.pl-controls{display:flex;align-items:center;gap:4px;margin-top:6px}
+.pl-controls .grow{flex:1;text-align:center;font-size:.92rem;color:#dbe3ec;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding:0 10px}
+.pl-live{color:var(--live);font-weight:700;font-size:.85rem}
+.pl-center{position:absolute;inset:0;display:grid;place-items:center;pointer-events:none}
+.pl-big{pointer-events:auto;width:88px;height:88px;border-radius:50%;background:rgba(0,0,0,.55)!important;font-size:2.4rem!important;border:2px solid rgba(255,255,255,.7)!important}
+.pl-spin{width:56px;height:56px;border-radius:50%;border:4px solid rgba(255,255,255,.2);border-top-color:var(--signal);animation:spin 1s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.pl-msg{pointer-events:auto;max-width:min(520px,90vw);background:rgba(15,29,46,.95);border:1px solid var(--line);border-radius:var(--r-lg);padding:20px;text-align:center;line-height:1.6}
+.pl-msg .row{justify-content:center;margin-top:12px}
+.pl-drawer{position:absolute;top:0;bottom:0;inset-inline-end:0;width:min(440px,92vw);background:rgba(15,29,46,.97);border-inline-start:1px solid var(--line);padding:18px;overflow-y:auto;z-index:2}
+.pl-drawer .head{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.pl-menu{position:absolute;bottom:92px;inset-inline-end:22px;width:min(560px,92vw);max-height:60vh;overflow-y:auto;background:rgba(15,29,46,.97);border:1px solid var(--line);border-radius:var(--r-lg);padding:14px 16px;display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px;z-index:2}
+.pl-menu h5{margin:0 0 6px;font-size:.8rem;color:var(--muted);font-weight:500}
+.pl-menu button{display:block;width:100%;text-align:start;padding:6px 8px;border-radius:6px;font-size:.9rem}
+.pl-menu button:hover{background:rgba(255,255,255,.08)}
+.pl-menu button[aria-checked=true]{color:var(--signal)}
+.pl-menu button[aria-checked=true]::before{content:"✓ "}
+.pl-menu .note{font-size:.78rem}
+.pl-next{position:absolute;bottom:120px;inset-inline-end:22px;display:flex;gap:14px;align-items:center;background:rgba(15,29,46,.96);border:1px solid var(--line);border-radius:var(--r-lg);padding:14px 16px;z-index:3;max-width:92vw}
+.pl-next .ring{position:relative;width:52px;height:52px;flex:none}
+.pl-next .ring svg{transform:rotate(-90deg)}
+.pl-next .ring b{position:absolute;inset:0;display:grid;place-items:center;font-size:1.1rem}
+.pl-next .go{background:var(--signal)!important;color:var(--ink)!important;border-radius:var(--r-sm);padding:9px 16px!important;font-weight:700!important}
+.pl-next .sub{color:#c8d2de}
+@media (max-width:600px){ .pl-top,.pl-bottom{padding:10px 12px} .pl-controls .grow{display:none} .pl-ic{min-width:38px;min-height:38px;font-size:1.25rem} .pl-menu{bottom:84px;inset-inline-end:8px} .pl-next{bottom:100px;inset-inline-end:8px} }
 #external.hot{outline:2px solid var(--signal);outline-offset:6px;border-radius:var(--r-sm)}
 .status{min-height:1.5em;color:var(--muted);font-size:.85rem;margin:8px 0}
 .status.err{color:var(--live)}
@@ -146,34 +221,74 @@ form .full{grid-column:1/-1}
   </div>
 </dialog>
 
-<!-- Player -->
-<dialog id="player">
-  <div class="dlg-head"><h3 id="pTitle"></h3><button class="x" type="button" data-close aria-label="إغلاق">×</button></div>
-  <div class="dlg-body">
-    <div class="pv" id="pv">
-      <video id="video" playsinline></video>
-      <!-- Player controls; labels are user-facing Arabic (play/pause, progress, mute, full screen) -->
-      <div class="pv-bar">
-        <button type="button" id="pvPlay" aria-label="تشغيل أو إيقاف مؤقت">▶</button>
-        <span class="pv-t" id="pvCur"></span>
-        <input type="range" id="pvSeek" min="0" max="0" step="1" value="0" aria-label="التقدم">
-        <span class="pv-t" id="pvDur"></span>
-        <button type="button" id="pvMute" aria-label="كتم الصوت">🔊</button>
-        <button type="button" id="pvFull" aria-label="ملء الشاشة">⛶</button>
-      </div>
+<!-- Title details: poster, Resume / Play, episode list, share link, external players -->
+<dialog id="details" class="det">
+  <div class="det-hero">
+    <div id="dArt"></div>
+    <div>
+      <h3 id="dTitle"></h3>
+      <div class="sub" id="dMeta"></div>
+      <p class="det-plot" id="dPlot"></p>
+      <div class="cta" id="dCta"></div>
     </div>
-    <div class="status" id="pStatus"></div>
-    <h4>المصادر</h4>
-    <div class="row" id="pSources"></div>
-    <div id="pSeries"></div>
+    <button class="x" type="button" data-close aria-label="إغلاق">×</button>
+  </div>
+  <div class="dlg-body">
+    <div id="dEpisodes"></div>
+    <div class="status" id="dStatus"></div>
+    <!-- "Play in an external player" (zero server bandwidth) -->
     <h4>تشغيل في مشغل خارجي</h4>
     <div class="row" id="external">
       <a class="pill" id="openAndroid" hidden>فتح بمشغل الجهاز</a>
       <button class="pill" type="button" id="dlM3u">تنزيل ملف لـ VLC</button>
       <button class="pill" type="button" id="copyLink">نسخ الرابط</button>
+      <button class="pill" type="button" id="copyShare">نسخ رابط المشاركة</button>
     </div>
   </div>
 </dialog>
+
+<!-- Full-screen player. Labels are user-facing Arabic: back, play/pause, back and
+     forward 10 seconds, mute, next episode, episodes, audio and subtitles, speed,
+     full screen. -->
+<div class="pl" id="pl" hidden>
+  <video id="video" playsinline></video>
+  <div class="pl-center"><div class="pl-spin" id="plSpin" hidden></div></div>
+  <div class="pl-center"><button class="pl-big" type="button" id="plBig" aria-label="تشغيل" hidden>▶</button></div>
+  <div class="pl-center"><div class="pl-msg" id="plMsg" hidden></div></div>
+  <div class="pl-top">
+    <button class="pl-ic" type="button" id="plBack" aria-label="رجوع">→</button>
+    <div class="pl-title"><b><bdi id="plTitle"></bdi></b><span id="plSub"></span></div>
+  </div>
+  <div class="pl-bottom">
+    <div class="pl-progress" id="plProgress">
+      <span id="plCur">0:00</span>
+      <input type="range" id="plSeek" min="0" max="0" step="1" value="0" aria-label="التقدم">
+      <span id="plLeft"></span>
+    </div>
+    <div class="pl-controls">
+      <button class="pl-ic" type="button" id="plPlay" aria-label="تشغيل أو إيقاف مؤقت">▶</button>
+      <button class="pl-ic" type="button" id="plRew" aria-label="رجوع 10 ثوان">↺<small>10</small></button>
+      <button class="pl-ic" type="button" id="plFwd" aria-label="تقديم 10 ثوان">↻<small>10</small></button>
+      <button class="pl-ic" type="button" id="plMute" aria-label="كتم الصوت">🔊</button>
+      <span class="grow" id="plName"></span>
+      <button class="pl-ic" type="button" id="plNext" aria-label="الحلقة التالية" hidden>⏭</button>
+      <button class="pl-ic" type="button" id="plEps" aria-label="الحلقات" hidden>☰</button>
+      <button class="pl-ic" type="button" id="plAS" aria-label="الصوت والترجمة والسرعة">💬</button>
+      <button class="pl-ic" type="button" id="plFull" aria-label="ملء الشاشة">⛶</button>
+    </div>
+  </div>
+  <aside class="pl-drawer" id="plDrawer" hidden>
+    <div class="head"><select class="season-pick" id="plSeason" aria-label="الموسم"></select><button class="x" type="button" id="plDrawerX" aria-label="إغلاق">×</button></div>
+    <div class="ep-list" id="plEpList"></div>
+  </aside>
+  <div class="pl-menu" id="plMenu" hidden></div>
+  <!-- Next episode countdown -->
+  <div class="pl-next" id="plNextCard" hidden>
+    <div class="ring"><svg width="52" height="52"><circle cx="26" cy="26" r="22" fill="none" stroke="rgba(255,255,255,.2)" stroke-width="4"/><circle id="plRing" cx="26" cy="26" r="22" fill="none" stroke="#FFB547" stroke-width="4" stroke-dasharray="138.2" stroke-dashoffset="0"/></svg><b id="plCount">5</b></div>
+    <div><div class="sub" id="plNextLabel"></div>
+      <div class="row" style="margin-top:8px"><button type="button" class="go" id="plNextGo">تشغيل الحلقة التالية</button><button type="button" id="plNextNo">مشاهدة الشارة</button></div></div>
+  </div>
+</div>
 
 <!-- Settings -->
 <dialog id="settings">
@@ -248,7 +363,8 @@ async function start() {
   try { me = await api('/api/me'); } catch { return; }
   $$('[data-admin]').forEach(el => el.hidden = !me.admin);
   $('#openSettings').textContent = me.admin ? 'الإعدادات' : 'ربط المشغل';
-  await loadStats(); home(); q.focus();
+  await loadStats(); home();
+  if (!openDeepLink()) q.focus();
 }
 
 // Xtream-style links: the player (or the browser) requests them from this server,
@@ -263,7 +379,7 @@ const xtUrl = (kind, id, ext, src) => {
 const q = $('#q');
 let timer;
 q.addEventListener('input', () => { clearTimeout(timer); timer = setTimeout(run, 120); });
-document.addEventListener('keydown', e => { if (e.key === '/' && document.activeElement !== q && !document.querySelector('dialog[open]')) { e.preventDefault(); q.focus(); } });
+document.addEventListener('keydown', e => { if (e.key === '/' && document.activeElement !== q && !document.querySelector('dialog[open]') && $('#pl').hidden) { e.preventDefault(); q.focus(); } });
 $$('.filters button').forEach(b => b.onclick = () => {
   type = b.dataset.t;
   $$('.filters button').forEach(x => x.setAttribute('aria-pressed', x === b));
@@ -323,21 +439,236 @@ async function home() {
   }
   const [vod, series] = await Promise.all(['vod', 'series'].map(t => api(`/api/latest?type=${t}&limit=18`)));
   if (q.value.trim()) return;
-  $('#out').innerHTML = block('أحدث الأفلام', vod, posters) + block('أحدث المسلسلات', series, posters);
+  const cw = await continueRow();
+  if (q.value.trim()) return;
+  $('#out').innerHTML = cw + block('أحدث الأفلام', vod, posters) + block('أحدث المسلسلات', series, posters);
+}
+
+// ── watch history (this browser only) ──
+// Progress lives in localStorage under player_history_v1 and is never sent to the
+// server. One record per title: the last season, episode and second watched.
+// media_id is "movie_<id>" or "series_<id>"; season and episode are 0 for films.
+const HISTORY_KEY = 'player_history_v1';
+const H = {
+  all() { try { return JSON.parse(localStorage.getItem(HISTORY_KEY)) || {}; } catch { return {}; } },
+  get(id) { return this.all()[id] || null; },
+  put(rec) { const a = this.all(); a[rec.media_id] = rec; try { localStorage.setItem(HISTORY_KEY, JSON.stringify(a)); } catch { /* full or blocked */ } },
+  del(id) { const a = this.all(); delete a[id]; try { localStorage.setItem(HISTORY_KEY, JSON.stringify(a)); } catch { /* blocked */ } },
+};
+const mediaIdOf = it => (it.type === 'series' ? 'series_' : it.type === 'live' ? 'live_' : 'movie_') + it.id;
+
+const fmt = t => {
+  t = Math.max(0, Math.floor(t || 0));
+  const h = Math.floor(t / 3600), m = Math.floor(t % 3600 / 60), s = t % 60;
+  return (h ? h + ':' + String(m).padStart(2, '0') : m) + ':' + String(s).padStart(2, '0');
+};
+// User-facing: "N min".
+const fmtMin = s => `${Math.max(1, Math.round(s / 60))} د`;
+// User-facing labels for how the server plays the stream (see src/play.js).
+const TIER = { direct: 'تشغيل مباشر', remux: 'تحويل الحاوية', audio: 'تحويل الصوت', transcode: 'تحويل الفيديو إلى 720p' };
+const LANGS = { ara: 'العربية', ar: 'العربية', eng: 'English', en: 'English', fre: 'Français', fra: 'Français', fr: 'Français',
+  tur: 'Türkçe', tr: 'Türkçe', ger: 'Deutsch', deu: 'Deutsch', spa: 'Español', es: 'Español', ita: 'Italiano', hin: 'हिन्दी', per: 'فارسی', fas: 'فارسی', kur: 'Kurdî' };
+const langName = l => LANGS[l] || l;
+
+// ── title details ──
+let item = null, seriesData = null, srcIdx = 0;
+const flatEps = () => (seriesData?.seasons || []).flatMap(s => s.episodes.map(e => ({ ...e, season: s.season })));
+const findEp = (season, num) => flatEps().find(e => e.season === season && e.num === num) || null;
+const nextEpOf = e => { const all = flatEps(), i = all.findIndex(x => x.season === e.season && x.num === e.num); return i >= 0 ? all[i + 1] || null : null; };
+const record = () => (item ? H.get(mediaIdOf(item)) : null);
+// The saved place to resume from, unless the title was finished.
+const resumeRec = () => { const r = record(); return r && !r.completed && (item.type === 'series' || r.timestamp > 0) ? r : null; };
+const offsetFor = e => { const r = resumeRec(); return r && e && r.season === e.season && r.episode === e.num ? r.timestamp : 0; };
+// Episodes before the saved one count as watched, the saved one as far as it got.
+function epProgress(e) {
+  const r = record(); if (!r) return 0;
+  if (r.completed) return 1;
+  if (e.season < r.season || (e.season === r.season && e.num < r.episode)) return 1;
+  return e.season === r.season && e.num === r.episode && r.duration ? Math.min(1, r.timestamp / r.duration) : 0;
+}
+
+async function loadTitle(id) {
+  try {
+    item = await api(`/api/item/${id}`);
+    srcIdx = 0; seriesData = null;
+    if (item.type === 'series') seriesData = await api(`/api/series/${item.id}`).catch(() => ({ seasons: [] }));
+    return true;
+  } catch { return false; }
+}
+async function openItem(id) { if (await loadTitle(id)) showDetails(); }
+
+// The episode the details page talks about: the saved one, else the first.
+const detailEp = () => { const r = resumeRec(); return (r && findEp(r.season, r.episode)) || flatEps()[0] || null; };
+
+function seasonOptions(sel) {
+  return (seriesData?.seasons || []).map(s => `<option value="${s.season}" ${s.season === sel ? 'selected' : ''}>الموسم ${s.season}</option>`).join('');
+}
+function episodeCards(season, current) {
+  const s = seriesData?.seasons.find(x => x.season === season);
+  if (!s) return '';
+  return s.episodes.map(e => {
+    const p = Math.round(epProgress({ ...e, season }) * 100);
+    const pic = e.img || item.img;
+    return `<button class="ep" type="button" data-s="${season}" data-e="${e.num}" aria-current="${!!current && current.season === season && current.num === e.num}">
+      <span class="n">${e.num}</span>
+      <span class="thumb">${pic ? `<img loading="lazy" src="${pic}" alt="" onerror="this.remove()">` : ''}${p ? `<span class="bar"><i style="width:${p}%"></i></span>` : ''}</span>
+      <span><span class="t">${esc(e.title || 'الحلقة ' + e.num)}</span><br><span class="d">${e.secs ? fmtMin(e.secs) : esc(e.duration || '')}</span></span>
+    </button>`;
+  }).join('');
+}
+
+function showDetails() {
+  const it = item;
+  $('#dArt').innerHTML = it.img ? `<img src="${it.img}" alt="">` : `<span class="ph">${esc(it.title[0] || '')}</span>`;
+  $('#dTitle').textContent = it.title;
+  // User-facing kinds: live channel, series, film.
+  const kind = it.type === 'live' ? 'قناة مباشرة' : it.type === 'series' ? 'مسلسل' : 'فيلم';
+  $('#dMeta').textContent = [kind, it.year, it.rating ? `تقييم ${(+it.rating).toFixed(1)}` : '', it.sources.length > 1 ? `${nf.format(it.sources.length)} مصادر` : '']
+    .filter(Boolean).join(' · ');
+  $('#dPlot').textContent = seriesData?.plot || '';
+  $('#dStatus').textContent = ''; $('#dStatus').className = 'status';
+  $('#external').classList.remove('hot');
+  renderCta();
+  if (it.type === 'series') {
+    const cur = detailEp();
+    $('#dEpisodes').innerHTML = cur
+      ? `<div class="row"><select class="season-pick" id="dSeason" aria-label="الموسم">${seasonOptions(cur.season)}</select></div><div class="ep-list" id="dEpList">${episodeCards(cur.season, cur)}</div>`
+      : '<p class="status">لا توجد حلقات متاحة.</p>';
+  } else $('#dEpisodes').innerHTML = '';
+  updateExternal();
+  if (!$('#details').open) $('#details').showModal();
+}
+
+// Resume / Start from beginning / Play, from this browser's history.
+function renderCta() {
+  const r = resumeRec(), b = [];
+  if (!item.sources.length) b.push('<span class="status err">لا توجد مصادر لهذا العنصر.</span>');
+  else if (item.type === 'live') b.push('<button class="primary" type="button" data-play>▶ مشاهدة البث</button>');
+  else if (item.type === 'series') {
+    const first = flatEps()[0];
+    if (r && findEp(r.season, r.episode)) {
+      b.push(`<button class="primary" type="button" data-play data-s="${r.season}" data-e="${r.episode}" data-t="${r.timestamp}">▶ استئناف م${r.season}:ح${r.episode}<small>${r.timestamp ? 'من ' + fmt(r.timestamp) : 'من البداية'}</small></button>`);
+      if (first) b.push(`<button class="ghost" type="button" data-play data-s="${first.season}" data-e="${first.num}" data-t="0">من البداية</button>`);
+    } else if (first) b.push(`<button class="primary" type="button" data-play data-s="${first.season}" data-e="${first.num}" data-t="0">▶ تشغيل م${first.season}:ح${first.num}</button>`);
+  } else if (r) {
+    b.push(`<button class="primary" type="button" data-play data-t="${r.timestamp}">▶ استئناف<small>من ${fmt(r.timestamp)}</small></button>`);
+    b.push('<button class="ghost" type="button" data-play data-t="0">من البداية</button>');
+  } else b.push('<button class="primary" type="button" data-play data-t="0">▶ تشغيل</button>');
+  // User-facing: "Remove from Continue Watching".
+  if (record()) b.push('<button class="linkish" type="button" data-forget-open>إزالة من متابعة المشاهدة</button>');
+  $('#dCta').innerHTML = b.join('');
+}
+
+$('#dCta').onclick = e => {
+  if (e.target.closest('[data-forget-open]')) { H.del(mediaIdOf(item)); showDetails(); if (!q.value.trim()) home(); return; }
+  const b = e.target.closest('[data-play]'); if (!b) return;
+  openPlayer({ season: +b.dataset.s || null, num: +b.dataset.e || null, t: +b.dataset.t || 0 });
+};
+$('#dEpisodes').addEventListener('change', e => {
+  if (e.target.id === 'dSeason') $('#dEpList').innerHTML = episodeCards(+e.target.value, detailEp());
+});
+$('#dEpisodes').addEventListener('click', e => {
+  const c = e.target.closest('.ep'); if (!c) return;
+  const ep2 = findEp(+c.dataset.s, +c.dataset.e);
+  openPlayer({ season: ep2.season, num: ep2.num, t: offsetFor(ep2) });
+});
+
+// ── external players (zero server bandwidth) ──
+// The direct player link for the current title, source and episode.
+function currentUrl(ext) {
+  const s = item.sources[srcIdx]; if (!s) return null;
+  if (item.type === 'live') return xtUrl('live', item.id, ext || 'ts', s.id);
+  if (item.type === 'vod') return xtUrl('vod', item.id, s.ext || 'mp4', s.id);
+  const e = (!pl.hidden && ep) || detailEp();
+  return e ? xtUrl('series', e.vid, 'mp4', s.id) : null;
+}
+function updateExternal() {
+  const url = currentUrl();
+  const a = $('#openAndroid');
+  a.hidden = !url || !/Android/i.test(navigator.userAgent);
+  if (url) { const u = new URL(url); a.href = `intent://${u.host}${u.pathname}${u.search}#Intent;scheme=${u.protocol.slice(0, -1)};type=video/*;end`; }
+}
+const dStatus = (t, err) => { $('#dStatus').textContent = t; $('#dStatus').className = 'status' + (err ? ' err' : ''); };
+// An m3u file listing every source in order: if the first fails, VLC moves on
+// to the next one by itself.
+$('#dlM3u').onclick = () => {
+  const e = item.type === 'series' ? detailEp() : null;
+  if (item.type === 'series' && !e) return dStatus('لا توجد حلقات', true);
+  const title = item.title + (e ? ` - الموسم ${e.season} الحلقة ${e.num}` : '');
+  const lines = ['#EXTM3U', ...item.sources.flatMap((s, i) => {
+    const keep = srcIdx; srcIdx = i; const u = currentUrl(); srcIdx = keep;
+    return [`#EXTINF:-1,${title} (${s.server})`, u];
+  })];
+  const a = Object.assign(document.createElement('a'), { href: URL.createObjectURL(new Blob([lines.join('\n')], { type: 'audio/x-mpegurl' })), download: 'play.m3u' });
+  a.click(); URL.revokeObjectURL(a.href);
+};
+const copy = async (text, done) => {
+  try { await navigator.clipboard.writeText(text); dStatus(done); } catch { prompt('انسخ الرابط:', text); }
+};
+$('#copyLink').onclick = () => { const u = currentUrl(); if (u) copy(u, 'نُسخ الرابط. في VLC اختر "فتح مجرى شبكة" والصقه.'); };
+// The link a Telegram bot (or anyone) can send: /watch?id=series_456
+$('#copyShare').onclick = () => copy(`${location.origin}/watch?id=${mediaIdOf(item)}`, 'نُسخ رابط المشاركة.');
+$$('[data-close]').forEach(b => b.onclick = () => b.closest('dialog').close());
+
+// ── continue watching (home) ──
+async function continueRow() {
+  const recs = Object.values(H.all()).filter(r => r && !r.completed && /^(movie|series)_\d+$/.test(r.media_id))
+    .sort((a, b) => b.updated_at - a.updated_at).slice(0, 12);
+  if (!recs.length) return '';
+  const items = await Promise.all(recs.map(r => api(`/api/item/${r.media_id.split('_')[1]}`).catch(() => null)));
+  const cards = recs.map((r, i) => {
+    const it = items[i]; if (!it) return '';
+    const p = r.duration ? Math.min(100, Math.round(r.timestamp / r.duration * 100)) : 0;
+    const where = r.type === 'series' ? `الموسم ${r.season} · الحلقة ${r.episode}` : '';
+    const left = r.duration && r.timestamp ? `متبقٍ ${fmtMin(r.duration - r.timestamp)}` : '';
+    return `<div class="cw-card" role="button" tabindex="0" data-id="${it.id}">
+      <div class="art">${it.img ? `<img loading="lazy" src="${it.img}" alt="" onerror="this.remove()">` : ''}<span class="bar"><i style="width:${p}%"></i></span>
+        <button class="forget" type="button" data-forget="${esc(r.media_id)}" aria-label="إزالة من متابعة المشاهدة" title="إزالة من متابعة المشاهدة">✕</button></div>
+      <div class="cw-meta"><b>${esc(it.title)}</b><span>${[where, left].filter(Boolean).join(' · ')}</span></div>
+    </div>`;
+  }).join('');
+  return cards ? `<section id="cwRow"><h2>متابعة المشاهدة</h2><div class="cw">${cards}</div></section>` : '';
+}
+// Removing a title from Continue Watching acts at once, before the card's own click.
+$('#out').addEventListener('click', e => {
+  const f = e.target.closest('[data-forget]'); if (!f) return;
+  e.stopPropagation();
+  H.del(f.dataset.forget);
+  f.closest('.cw-card').remove();
+  if (!document.querySelector('#cwRow .cw-card')) $('#cwRow')?.remove();
+}, true);
+
+// ── deep links: /watch?id=series_456[&s=2&e=3&t=120] ──
+// No saved progress: play from the start at once. Saved progress: offer Resume or
+// Start from beginning. s, e and t in the link win over saved progress.
+function openDeepLink() {
+  const u = new URL(location.href);
+  if (u.pathname !== '/watch') return false;
+  const m = /^(series|movie|live)_(\d+)$/.exec(u.searchParams.get('id') || '');
+  history.replaceState(null, '', '/');
+  if (!m) return false;
+  const explicit = ['s', 'e', 't'].some(k => u.searchParams.has(k));
+  deepLink(+m[2], { s: +u.searchParams.get('s') || 1, e: +u.searchParams.get('e') || 1, t: +u.searchParams.get('t') || 0, explicit });
+  return true;
+}
+async function deepLink(id, o) {
+  if (!(await loadTitle(id))) return;
+  if (item.type === 'live') return openPlayer();
+  if (o.explicit) return item.type === 'series' ? openPlayer({ season: o.s, num: o.e, t: o.t }) : openPlayer({ t: o.t });
+  if (resumeRec()) return showDetails();
+  const first = flatEps()[0];
+  openPlayer(item.type === 'series' ? { season: first?.season, num: first?.num, t: 0 } : { t: 0 });
 }
 
 // ── player ──
-// The web player streams through this server (src/play.js), which picks the
-// cheapest way to make each stream playable: the file itself, or HLS that ffmpeg
-// remuxes or converts. Players such as TiviMate keep using the direct links in
-// "external player" below, which cost the server nothing.
-const video = $('#video');
-let item, srcIdx = 0, episode = null, stallTimer, hls = null, sess = null, pingTimer = null, playToken = 0, dragging = false;
-function status(t, err) { const s = $('#pStatus'); s.textContent = t; s.className = 'status' + (err ? ' err' : ''); }
-
-// User-facing labels for how the server is playing the stream: as it is, new
-// container, converted audio, converted video.
-const TIER = { direct: 'تشغيل مباشر', remux: 'تحويل الحاوية', audio: 'تحويل الصوت', transcode: 'تحويل الفيديو إلى 720p' };
+// Streams through this server (src/play.js), which picks the cheapest way to make
+// each stream playable. Players such as TiviMate use the external links instead,
+// which cost the server nothing.
+const pl = $('#pl'), video = $('#video'), seekBar = $('#plSeek');
+let ep = null, sess = null, hls = null, pingTimer = null, stallTimer = null, subTimer = null, idleTimer = null;
+let playToken = 0, ready = false, dragging = false, nextDismissed = false, countdown = null;
+let prefAudioLang = null, subChoice = null, subTrack = null;
+const subSeen = new Set();
 
 // hls.js plays HLS in browsers without native support. Loaded from the CDN the
 // first time it is needed, pinned and integrity-checked.
@@ -354,209 +685,367 @@ const loadHls = () => hlsLib ||= new Promise((ok, bad) => {
   document.head.append(el);
 });
 
+const absNow = () => (sess?.base || 0) + (video.currentTime || 0);
+const total = () => sess?.duration || (Number.isFinite(video.duration) ? video.duration : 0) || ep?.secs || 0;
+const spin = on => { $('#plSpin').hidden = !on; };
+const showMsg = html => { $('#plMsg').innerHTML = html; $('#plMsg').hidden = false; spin(false); };
+const hideMsg = () => { $('#plMsg').hidden = true; };
+
+function openPlayer({ season = null, num = null, t = 0 } = {}) {
+  if ($('#details').open) $('#details').close();
+  ep = item.type === 'series' ? (findEp(season, num) || flatEps()[0] || null) : null;
+  if (item.type === 'series' && !ep) return;
+  pl.hidden = false;
+  document.body.style.overflow = 'hidden';
+  drawChrome();
+  startStream(t);
+  bumpIdle();
+}
+function closePlayer() {
+  saveProgress(true);
+  stop(); hideNext(); closePanels(); hideMsg();
+  if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
+  pl.hidden = true;
+  document.body.style.overflow = '';
+  showDetails();
+  if (!q.value.trim()) home();
+}
+
+function drawChrome() {
+  $('#plTitle').textContent = item.title;
+  const sub = ep ? `الموسم ${ep.season} · الحلقة ${ep.num}${ep.title ? ' · <bdi>' + esc(ep.title) + '</bdi>' : ''}` : item.type === 'live' ? '● مباشر' : esc(item.year || '');
+  $('#plSub').innerHTML = sub;
+  $('#plName').innerHTML = ep ? `م${ep.season}:ح${ep.num} <bdi>${esc(ep.title || '')}</bdi>` : `<bdi>${esc(item.title)}</bdi>`;
+  $('#plNext').hidden = !ep || !nextEpOf(ep);
+  $('#plEps').hidden = !ep;
+  $('#plProgress').style.visibility = item.type === 'live' ? 'hidden' : '';
+  $('#plRew').hidden = $('#plFwd').hidden = item.type === 'live';
+  drawBar();
+}
+function drawBar() {
+  $('#plPlay').textContent = video.paused ? '▶' : '❚❚';
+  $('#plMute').textContent = video.muted ? '🔇' : '🔊';
+  if (item?.type === 'live') return;
+  const d = total(), now = absNow();
+  $('#plCur').textContent = fmt(now);
+  $('#plLeft').textContent = d ? '-' + fmt(d - now) : '';
+  if (!dragging) { seekBar.max = Math.floor(d); seekBar.value = Math.floor(now); }
+}
+
 function detach() {
-  clearTimeout(stallTimer);
+  clearTimeout(stallTimer); clearInterval(subTimer);
+  ready = false;
   if (hls) { hls.destroy(); hls = null; }
   video.onplaying = video.onerror = null;
   video.removeAttribute('src'); video.load();
+  clearCues();
 }
 // Ends the stream on the server as well, so its ffmpeg stops at once.
 function stop() {
   playToken++; detach(); clearInterval(pingTimer);
   if (sess) { fetch(`/api/play/${sess.id}/stop`, { method: 'POST', keepalive: true }).catch(() => {}); sess = null; }
-  drawBar();
-}
-addEventListener('pagehide', () => { if (sess) navigator.sendBeacon(`/api/play/${sess.id}/stop`); });
-
-async function openItem(id) {
-  item = await api(`/api/item/${id}`);
-  srcIdx = 0; episode = null;
-  $('#pTitle').textContent = item.title + (item.year ? ` (${item.year})` : '');
-  $('#player').showModal();
-  drawSources();
-  if (item.type === 'series') { stop(); status('اختر حلقة'); loadEpisodes(); }
-  else { $('#pSeries').innerHTML = ''; play(); }
-}
-function drawSources() {
-  $('#pSources').innerHTML = item.sources.map((s, i) => `
-    <button class="pill ${s.down ? 'off' : ''}" type="button" data-i="${i}" aria-current="${i === srcIdx}">${esc(s.server)} ${s.quality ? `<small>${esc(s.quality)}</small>` : ''} ${s.ext ? `<small>${esc(s.ext)}</small>` : ''}</button>`).join('');
-  updateExternal();
-}
-$('#pSources').onclick = e => {
-  const b = e.target.closest('[data-i]'); if (!b) return;
-  srcIdx = +b.dataset.i; drawSources();
-  if (item.type !== 'series' || episode) play();
-};
-// The direct player link for the current item and source (external players).
-function currentUrl(ext) {
-  const s = item.sources[srcIdx];
-  if (item.type === 'live') return xtUrl('live', item.id, ext || 'ts', s.id);
-  if (item.type === 'vod') return xtUrl('vod', item.id, s.ext || 'mp4', s.id);
-  return episode ? xtUrl('series', episode.vid, 'mp4', s.id) : null;
-}
-function updateExternal() {
-  const url = currentUrl();
-  const a = $('#openAndroid');
-  a.hidden = !url || !/Android/i.test(navigator.userAgent);
-  if (url) { const u = new URL(url); a.href = `intent://${u.host}${u.pathname}${u.search}#Intent;scheme=${u.protocol.slice(0, -1)};type=video/*;end`; }
 }
 
-async function play() {
-  stop(); updateExternal();
-  $('#external').classList.remove('hot');
+async function startStream(t = 0) {
+  stop(); hideMsg(); hideNext(); spin(true);
+  nextDismissed = false;
   const token = playToken, s = item.sources[srcIdx];
-  status(`جاري التحضير من ${s.server}`);
+  if (!s) return showMsg('<p>لا توجد مصادر لهذا العنصر.</p>');
   let r;
   try {
     r = await api('/api/play', { method: 'POST', body: JSON.stringify({
-      kind: item.type, id: item.type === 'series' ? episode.vid : item.id, src: s.id }) });
+      kind: item.type, id: ep ? ep.vid : item.id, src: s.id, start: Math.floor(t) }) });
   } catch (e) {
     if (token !== playToken || e.message === 'auth') return;
-    if (e.data?.busy) return busy(e.message);
-    return failover(e.message);
+    if (e.data?.busy) return busyMsg(e.message);
+    return failover(e.message, t);
   }
   if (token !== playToken) { fetch(`/api/play/${r.id}/stop`, { method: 'POST' }); return; }
-  sess = { ...r, base: r.start || 0 };
+  sess = { ...r, base: r.mode === 'direct' ? 0 : (r.start || 0) };
   pingTimer = setInterval(() => { if (sess) fetch(`/api/play/${sess.id}/ping`, { method: 'POST' }).catch(() => {}); }, 10000);
-  status(`جاري التشغيل من ${s.server} · ${TIER[r.tier] || ''}`);
-  drawBar();
-  attach(r, token);
+  // Keep the viewer's audio language from one episode to the next.
+  const want = prefAudioLang && r.audios?.find(a => a.lang === prefAudioLang);
+  if (want && want.index !== r.audio) return restart(t, want.index);
+  attach(token, t);
 }
 
-async function attach(r, token) {
+async function attach(token, t = 0) {
   detach();
-  const s = item.sources[srcIdx];
   // Converting video can take a few seconds before the first picture.
-  stallTimer = setTimeout(() => failover('المصدر لم يستجب خلال 30 ثانية'), 30000);
-  video.onplaying = () => { clearTimeout(stallTimer); status(`يعمل من ${s.server} · ${TIER[r.tier] || ''}`); };
-  video.onerror = () => failover('تعذر تشغيل هذا المصدر');
-  if (r.mode === 'direct') video.src = r.url;
-  else {
-    const Hls = await loadHls().catch(() => null);
+  stallTimer = setTimeout(() => failover('المصدر لم يستجب خلال 30 ثانية', absNow()), 30000);
+  video.onplaying = () => { clearTimeout(stallTimer); ready = true; spin(false); $('#plBig').hidden = true; };
+  video.onerror = () => failover('تعذر تشغيل هذا المصدر', absNow());
+  if (sess.mode === 'direct') {
+    video.src = sess.url;
+    if (t > 0) video.addEventListener('loadedmetadata', () => { video.currentTime = t; }, { once: true });
+  } else {
+    const Hls = nativeHls ? null : await loadHls().catch(() => null);
     if (token !== playToken) return;
     if (Hls?.isSupported()) {
       // Films start from the beginning of what has been converted, not its end.
-      hls = new Hls(r.live ? {} : { startPosition: 0 });
-      hls.on(Hls.Events.ERROR, (_, d) => { if (d.fatal) failover('تعذر تشغيل هذا المصدر'); });
-      hls.loadSource(r.url);
+      hls = new Hls(sess.live ? {} : { startPosition: 0 });
+      hls.on(Hls.Events.ERROR, (_, d) => { if (d.fatal) failover('تعذر تشغيل هذا المصدر', absNow()); });
+      hls.loadSource(sess.url);
       hls.attachMedia(video);
-    } else if (nativeHls) video.src = r.url;
-    else return failover('هذا المتصفح لا يدعم التشغيل');
+    } else if (nativeHls) video.src = sess.url;
+    else return showMsg('<p>هذا المتصفح لا يدعم التشغيل.</p>' + externalButtons());
   }
-  video.play().catch(() => {});
+  applySubs();
+  video.play().catch(err => {
+    // Browsers refuse sound without a tap when the page was opened from a link.
+    if (err.name === 'NotAllowedError' && token === playToken) { clearTimeout(stallTimer); spin(false); $('#plBig').hidden = false; }
+  });
 }
 
-// The server is at its limit: point at the external players instead.
-function busy(msg) {
-  stop();
-  status(`${msg}. شغّله الآن في مشغل خارجي من الأزرار بالأسفل.`, true);
-  $('#external').classList.add('hot');
-}
-function failover(reason) {
-  if (!$('#player').open) return;
-  if (srcIdx + 1 < item.sources.length) {
-    srcIdx++; drawSources(); status(`${reason}، جاري التبديل إلى ${item.sources[srcIdx].server}`); setTimeout(play, 400);
-  } else {
-    stop();
-    status(`${reason}. استخدم مشغلاً خارجياً من الأزرار بالأسفل.`, true);
-    $('#external').classList.add('hot');
+// Restart the conversion at second t, optionally with another audio track.
+async function restart(t, audio) {
+  const token = playToken;
+  spin(true);
+  try {
+    const r = await api(`/api/play/${sess.id}/seek`, { method: 'POST', body: JSON.stringify(audio == null ? { t } : { t, audio }) });
+    if (token !== playToken) return;
+    sess = { ...sess, ...r, base: r.start || 0 };
+    attach(token);
+  } catch (e) {
+    if (token !== playToken || e.message === 'auth') return;
+    if (e.data?.busy) return busyMsg(e.message);
+    failover(e.message, t);
   }
 }
 
-// ── player controls ──
-// Converted films arrive a little at a time, so the bar shows the film's full
-// length from the server and seeking past what is ready restarts the conversion
-// there. Times on screen are sess.base (where the conversion started) plus the
-// position inside the current stream.
-const fmt = t => {
-  t = Math.max(0, Math.floor(t || 0));
-  const h = Math.floor(t / 3600), m = Math.floor(t % 3600 / 60), s = t % 60;
-  return (h ? h + ':' + String(m).padStart(2, '0') : m) + ':' + String(s).padStart(2, '0');
-};
-const absNow = () => (sess?.base || 0) + (video.currentTime || 0);
-const total = () => sess?.duration || (Number.isFinite(video.duration) ? video.duration : 0);
-function drawBar() {
-  const live = !!sess?.live, seek = $('#pvSeek');
-  seek.hidden = live || !total();
-  $('#pvPlay').textContent = video.paused ? '▶' : '❚❚';
-  $('#pvMute').textContent = video.muted ? '🔇' : '🔊';
-  $('#pvCur').textContent = live || !sess ? '' : fmt(absNow());
-  $('#pvDur').innerHTML = live ? '<span class="live-badge">● مباشر</span>' : sess && total() ? fmt(total()) : '';
-  if (!dragging) { seek.max = Math.floor(total()); seek.value = Math.floor(absNow()); }
-}
-for (const ev of ['timeupdate', 'play', 'pause', 'volumechange', 'durationchange', 'loadedmetadata']) video.addEventListener(ev, drawBar);
-const togglePlay = () => { if (sess) video.paused ? video.play().catch(() => {}) : video.pause(); };
-$('#pvPlay').onclick = togglePlay;
-video.addEventListener('click', togglePlay);
-$('#pvMute').onclick = () => { video.muted = !video.muted; };
-$('#pvFull').onclick = () => {
-  if (document.fullscreenElement) return document.exitFullscreen();
-  const el = $('#pv');
-  if (el.requestFullscreen) el.requestFullscreen(); else video.webkitEnterFullscreen?.();
-};
-$('#pvSeek').addEventListener('input', e => { dragging = true; $('#pvCur').textContent = fmt(+e.target.value); });
-$('#pvSeek').addEventListener('change', e => { dragging = false; seekTo(+e.target.value); });
-
-async function seekTo(t) {
+function seekTo(t) {
   if (!sess || sess.live) return;
+  t = Math.max(0, Math.min(t, (total() || t + 1) - 1));
   if (sess.mode === 'direct') { video.currentTime = t; return; }
   const rel = t - sess.base;
-  const ready = video.seekable.length ? video.seekable.end(video.seekable.length - 1) : 0;
-  if (rel >= 0 && rel <= ready - 2) { video.currentTime = rel; return; }
+  const readyTo = video.seekable.length ? video.seekable.end(video.seekable.length - 1) : 0;
+  if (rel >= 0 && rel <= readyTo - 2) { video.currentTime = rel; return; }
   // Not converted yet, or before where this conversion began: restart there.
-  status('جاري الانتقال');
-  const token = playToken;
-  try {
-    const r = await api(`/api/play/${sess.id}/seek`, { method: 'POST', body: JSON.stringify({ t }) });
-    if (token !== playToken) return;
-    sess = { ...sess, ...r, base: r.start };
-    attach(r, token);
-  } catch (e) { if (token === playToken) failover(e.message); }
+  restart(t);
 }
 
-async function loadEpisodes() {
-  const box = $('#pSeries'); box.innerHTML = '<p class="status">جاري جلب الحلقات من كل السيرفرات</p>';
-  try {
-    const d = await api(`/api/series/${item.id}`);
-    if (!d.seasons?.length) { box.innerHTML = '<p class="status">لا توجد حلقات متاحة.</p>'; return; }
-    box.innerHTML = `<h4>المواسم</h4><div class="row" id="seasons">${d.seasons.map((s, i) =>
-      `<button class="pill" type="button" data-s="${i}" aria-current="${i === 0}">الموسم ${s.season}</button>`).join('')}</div><div class="eps" id="eps"></div>`;
-    const showSeason = i => {
-      $$('#seasons .pill').forEach(b => b.setAttribute('aria-current', b.dataset.s == i));
-      $('#eps').innerHTML = d.seasons[i].episodes.map((e, j) =>
-        `<button class="pill" type="button" data-e="${j}" title="${esc(e.plot)}">الحلقة ${e.num}${e.duration ? ` <small>${esc(e.duration)}</small>` : ''}</button>`).join('');
-      $('#eps').onclick = ev => {
-        const b = ev.target.closest('[data-e]'); if (!b) return;
-        episode = { ...d.seasons[i].episodes[+b.dataset.e], season: d.seasons[i].season };
-        $$('#eps .pill').forEach(x => x.setAttribute('aria-current', x === b));
-        play();
-      };
-    };
-    $('#seasons').onclick = ev => { const b = ev.target.closest('[data-s]'); if (b) showSeason(+b.dataset.s); };
-    showSeason(0);
-  } catch { box.innerHTML = '<p class="status err">تعذر جلب الحلقات.</p>'; }
+const externalButtons = () => '<div class="row"><button class="primary" type="button" data-ext>المشغل الخارجي</button><button class="ghost" type="button" data-back>رجوع</button></div>';
+// The server is at its limit: point at the external players, which cost it nothing.
+function busyMsg(text) {
+  stop();
+  showMsg(`<p>${esc(text)}.</p><p>شغّله الآن في مشغل خارجي، بدون أي ضغط على الخادم.</p>${externalButtons()}`);
+}
+function failover(reason, t = 0) {
+  if (pl.hidden) return;
+  if (srcIdx + 1 < item.sources.length) { srcIdx++; startStream(t); return; }
+  stop();
+  showMsg(`<p>${esc(reason)}.</p><p>جرّب مشغلاً خارجياً.</p>${externalButtons()}`);
 }
 
-// An m3u file listing every source in order: if the first fails, VLC moves on
-// to the next one by itself.
-$('#dlM3u').onclick = () => {
-  if (item.type === 'series' && !episode) return status('اختر حلقة أولاً', true);
-  const title = item.title + (episode ? ` - الموسم ${episode.season ?? ''} الحلقة ${episode.num}` : '');
-  const lines = ['#EXTM3U', ...item.sources.flatMap((s, i) => {
-    const keep = srcIdx; srcIdx = i; const u = currentUrl(); srcIdx = keep;
-    return [`#EXTINF:-1,${title} (${s.server})`, u];
-  })];
-  const a = Object.assign(document.createElement('a'), { href: URL.createObjectURL(new Blob([lines.join('\n')], { type: 'audio/x-mpegurl' })), download: 'play.m3u' });
-  a.click(); URL.revokeObjectURL(a.href);
+// ── subtitles: WebVTT that grows while the film is converted ──
+const vttTime = s => { const p = s.trim().split(':').map(Number); return p.length === 3 ? p[0] * 3600 + p[1] * 60 + p[2] : p[0] * 60 + p[1]; };
+function parseVtt(text) {
+  return text.replace(/\r/g, '').split(/\n\n+/).map(block => {
+    const lines = block.split('\n'), i = lines.findIndex(l => l.includes('-->'));
+    if (i < 0) return null;
+    const [a, z] = lines[i].split('-->');
+    return { start: vttTime(a), end: vttTime(z.trim().split(/\s+/)[0]), text: lines.slice(i + 1).join('\n').trim() };
+  }).filter(c => c && c.text && Number.isFinite(c.start) && Number.isFinite(c.end));
+}
+function subIndex() {
+  if (!subChoice || !sess?.subs?.length) return -1;
+  const byLang = subChoice.lang ? sess.subs.findIndex(s => s.lang === subChoice.lang) : -1;
+  return byLang >= 0 ? byLang : (subChoice.i < sess.subs.length ? subChoice.i : -1);
+}
+function clearCues() {
+  if (!subTrack) return;
+  for (const c of [...(subTrack.cues || [])]) subTrack.removeCue(c);
+  subTrack.mode = 'hidden';
+  subSeen.clear();
+}
+async function loadSubs() {
+  const i = subIndex(); if (i < 0 || !sess) return;
+  const r = await fetch(sess.subs[i].url).catch(() => null);
+  if (!r?.ok) return;
+  subTrack ||= video.addTextTrack('subtitles', 'sub');
+  subTrack.mode = 'showing';
+  for (const c of parseVtt(await r.text())) {
+    const k = `${c.start}|${c.text}`;
+    if (subSeen.has(k)) continue;
+    subSeen.add(k);
+    subTrack.addCue(new VTTCue(c.start, c.end, c.text));
+  }
+}
+function applySubs() {
+  clearInterval(subTimer); clearCues();
+  if (subIndex() < 0) return;
+  loadSubs();
+  subTimer = setInterval(loadSubs, 15000);
+}
+
+// ── progress, saved in this browser only ──
+// Every 5 seconds while playing, and at once on pause, seek, speed change and when
+// leaving. Only after the picture really plays, so a source change or a restart
+// never records second 0.
+let lastSave = 0;
+function saveProgress(force) {
+  if (!item || item.type === 'live' || !sess || !ready) return;
+  const now = Date.now();
+  if (!force && now - lastSave < 5000) return;
+  lastSave = now;
+  const t = absNow(), d = total();
+  if (!d) return;
+  const rec = { media_id: mediaIdOf(item), type: item.type === 'series' ? 'series' : 'movie',
+    season: ep ? ep.season : 0, episode: ep ? ep.num : 0, timestamp: Math.floor(t), duration: Math.floor(d), completed: false, updated_at: now };
+  if (t / d >= 0.9) {
+    // Finished: resume moves on to the next episode at 00:00, or the title is done.
+    const nx = ep && nextEpOf(ep);
+    if (nx) Object.assign(rec, { season: nx.season, episode: nx.num, timestamp: 0, duration: nx.secs || 0 });
+    else rec.completed = true;
+  }
+  H.put(rec);
+}
+
+// Moving to another episode (countdown, Next, or the drawer) makes it the resume
+// point at once, even before its first saved second.
+function markEpisode(e, t = 0) {
+  H.put({ media_id: mediaIdOf(item), type: 'series', season: e.season, episode: e.num, timestamp: Math.floor(t),
+    duration: Math.floor(e.secs || 0), completed: false, updated_at: Date.now() });
+}
+
+// ── next episode ──
+function checkNext() {
+  if (!ep || !sess || !ready || nextDismissed || !$('#plNextCard').hidden) return;
+  const nx = nextEpOf(ep), d = total();
+  if (nx && d && d - absNow() <= 30) showNext(nx);
+}
+function showNext(nx) {
+  // User-facing: "Next: season S episode E", "(new season)".
+  $('#plNextLabel').textContent = `التالي: الموسم ${nx.season} · الحلقة ${nx.num}${nx.season !== ep.season ? ' (موسم جديد)' : ''}`;
+  $('#plNextCard').hidden = false;
+  let left = 5;
+  const draw = () => { $('#plCount').textContent = left; $('#plRing').style.strokeDashoffset = String(138.2 * (1 - left / 5)); };
+  draw();
+  clearInterval(countdown);
+  countdown = setInterval(() => {
+    if (video.paused) return;
+    left--; draw();
+    if (left <= 0) goNext();
+  }, 1000);
+}
+function hideNext() { clearInterval(countdown); $('#plNextCard').hidden = true; }
+function goNext() {
+  const nx = ep && nextEpOf(ep); hideNext();
+  if (!nx) return;
+  saveProgress(true);
+  ep = nx; markEpisode(ep); drawChrome(); startStream(0);
+}
+$('#plNextGo').onclick = goNext;
+$('#plNextNo').onclick = () => { nextDismissed = true; hideNext(); };
+$('#plNext').onclick = goNext;
+video.addEventListener('ended', () => {
+  saveProgress(true);
+  if (ep && nextEpOf(ep)) return goNext();
+  // User-facing: "The end", "Watch again", "Back".
+  showMsg(`<p>${ep ? 'انتهى المسلسل' : 'انتهى'}.</p><div class="row"><button class="primary" type="button" data-replay>إعادة المشاهدة</button><button class="ghost" type="button" data-back>رجوع</button></div>`);
+});
+
+// ── episodes drawer ──
+function openDrawer() {
+  closePanels();
+  $('#plSeason').innerHTML = seasonOptions(ep.season);
+  $('#plEpList').innerHTML = episodeCards(ep.season, ep);
+  $('#plDrawer').hidden = false;
+}
+$('#plEps').onclick = () => ($('#plDrawer').hidden ? openDrawer() : closePanels());
+$('#plDrawerX').onclick = () => closePanels();
+$('#plSeason').onchange = e => { $('#plEpList').innerHTML = episodeCards(+e.target.value, ep); };
+$('#plEpList').onclick = e => {
+  const c = e.target.closest('.ep'); if (!c) return;
+  saveProgress(true);
+  ep = findEp(+c.dataset.s, +c.dataset.e);
+  const t = offsetFor(ep);
+  markEpisode(ep, t);
+  closePanels(); drawChrome(); startStream(t);
 };
-$('#copyLink').onclick = async () => {
-  const url = currentUrl();
-  if (!url) return status('اختر حلقة أولاً', true);
-  try { await navigator.clipboard.writeText(url); status('نُسخ الرابط. في VLC اختر "فتح مجرى شبكة" والصقه.'); }
-  catch { prompt('انسخ الرابط:', url); }
+
+// ── audio, subtitles, speed and source menu ──
+function openMenu() {
+  closePanels();
+  const au = sess?.audios || [], subs = sess?.subs || [], si = subIndex();
+  const audioLabel = (a, i) => (a.title || (a.lang ? langName(a.lang) : `مسار ${i + 1}`)) + (a.channels > 2 ? ' 5.1' : '');
+  const opt = (on, attrs, label) => `<button type="button" role="menuitemradio" aria-checked="${on}" ${attrs}>${esc(label)}</button>`;
+  $('#plMenu').innerHTML = `
+    <div><h5>الصوت</h5>${au.length > 1 ? au.map((a, i) => opt(a.index === sess.audio, `data-audio="${a.index}"`, audioLabel(a, i))).join('') : '<p class="note">مسار صوت واحد</p>'}</div>
+    <div><h5>الترجمة</h5>${subs.length ? opt(si < 0, 'data-sub="-1"', 'إيقاف') + subs.map((s, i) => opt(i === si, `data-sub="${i}"`, s.title || (s.lang ? langName(s.lang) : `ترجمة ${i + 1}`))).join('') : '<p class="note">لا توجد ترجمة نصية</p>'}</div>
+    ${item.type === 'live' ? '' : `<div><h5>السرعة</h5>${[0.5, 0.75, 1, 1.25, 1.5].map(v => opt(video.playbackRate === v, `data-rate="${v}"`, v + 'x')).join('')}</div>`}
+    <div><h5>المصدر</h5>${item.sources.map((s, i) => opt(i === srcIdx, `data-src="${i}"`, s.server + (s.quality ? ' · ' + s.quality : ''))).join('')}
+      <p class="note">${sess ? esc(TIER[sess.tier] || '') : ''}</p>
+      <button type="button" data-ext>فتح في مشغل خارجي</button></div>`;
+  $('#plMenu').hidden = false;
+}
+$('#plAS').onclick = () => ($('#plMenu').hidden ? openMenu() : closePanels());
+$('#plMenu').onclick = e => {
+  const b = e.target.closest('button'); if (!b || b.hasAttribute('data-ext')) return;
+  if (b.dataset.audio != null) {
+    const idx = +b.dataset.audio;
+    prefAudioLang = sess.audios.find(a => a.index === idx)?.lang || null;
+    if (idx !== sess.audio) restart(sess.live ? 0 : absNow(), idx);
+  } else if (b.dataset.sub != null) {
+    const i = +b.dataset.sub;
+    subChoice = i < 0 ? null : { lang: sess.subs[i].lang, i };
+    applySubs();
+  } else if (b.dataset.rate != null) video.playbackRate = +b.dataset.rate;
+  else if (b.dataset.src != null) { srcIdx = +b.dataset.src; startStream(absNow()); }
+  closePanels();
 };
-$('#player').addEventListener('close', stop);
-$$('[data-close]').forEach(b => b.onclick = () => b.closest('dialog').close());
+function closePanels() { $('#plMenu').hidden = true; $('#plDrawer').hidden = true; }
+
+// ── controls ──
+const togglePlay = () => { if (!sess) return; video.paused ? video.play().catch(() => {}) : video.pause(); };
+function toggleFull() {
+  if (document.fullscreenElement) return document.exitFullscreen().catch(() => {});
+  if (pl.requestFullscreen) pl.requestFullscreen().catch(() => {}); else video.webkitEnterFullscreen?.();
+}
+$('#plPlay').onclick = togglePlay;
+$('#plBig').onclick = () => { $('#plBig').hidden = true; video.play().catch(() => {}); };
+$('#plRew').onclick = () => seekTo(absNow() - 10);
+$('#plFwd').onclick = () => seekTo(absNow() + 10);
+$('#plMute').onclick = () => { video.muted = !video.muted; };
+$('#plFull').onclick = toggleFull;
+$('#plBack').onclick = closePlayer;
+video.addEventListener('click', () => { if (pl.classList.contains('idle')) return bumpIdle(); closePanels(); togglePlay(); });
+video.addEventListener('dblclick', toggleFull);
+seekBar.addEventListener('input', () => { dragging = true; $('#plCur').textContent = fmt(+seekBar.value); });
+seekBar.addEventListener('change', () => { dragging = false; seekTo(+seekBar.value); });
+pl.addEventListener('click', e => {
+  if (e.target.closest('[data-back]')) return closePlayer();
+  if (e.target.closest('[data-replay]')) { hideMsg(); if (ep) { ep = flatEps()[0]; drawChrome(); } return startStream(0); }
+  if (e.target.closest('[data-ext]')) { closePlayer(); $('#external').classList.add('hot'); }
+});
+for (const ev of ['play', 'pause', 'volumechange', 'durationchange', 'loadedmetadata']) video.addEventListener(ev, drawBar);
+video.addEventListener('timeupdate', () => { drawBar(); saveProgress(false); checkNext(); });
+for (const ev of ['pause', 'seeked', 'ratechange']) video.addEventListener(ev, () => saveProgress(true));
+video.addEventListener('waiting', () => { if (ready) spin(true); });
+video.addEventListener('playing', () => spin(false));
+video.addEventListener('pause', bumpIdle);
+addEventListener('beforeunload', () => saveProgress(true));
+addEventListener('pagehide', () => { saveProgress(true); if (sess) navigator.sendBeacon(`/api/play/${sess.id}/stop`); });
+
+// Controls fade out after 3 seconds without mouse or touch, like Netflix.
+function bumpIdle() {
+  pl.classList.remove('idle');
+  clearTimeout(idleTimer);
+  idleTimer = setTimeout(() => { if (!video.paused && $('#plMenu').hidden && $('#plDrawer').hidden) pl.classList.add('idle'); }, 3000);
+}
+pl.addEventListener('mousemove', bumpIdle);
+pl.addEventListener('touchstart', bumpIdle, { passive: true });
+
+// Keyboard: space or k play/pause, arrows 10 seconds, f full screen, m mute, Esc back.
+document.addEventListener('keydown', e => {
+  if (pl.hidden || document.querySelector('dialog[open]')) return;
+  if (e.target.closest?.('select')) return;
+  const keys = { ' ': togglePlay, k: togglePlay, ArrowRight: () => seekTo(absNow() + 10), ArrowLeft: () => seekTo(absNow() - 10),
+    f: toggleFull, m: () => { video.muted = !video.muted; },
+    Escape: () => { if (!$('#plMenu').hidden || !$('#plDrawer').hidden) closePanels(); else if (!document.fullscreenElement) closePlayer(); } };
+  const fn = keys[e.key]; if (!fn) return;
+  e.preventDefault(); fn(); bumpIdle();
+});
 
 // ── settings ──
 function openSettings(tab = 'connect') { $('#settings').showModal(); selectTab(tab); }

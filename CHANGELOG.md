@@ -7,6 +7,32 @@ project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [2.4.0] - 2026-10-07
+
+### Added
+
+- A full-screen, Netflix-style player: back button and title on top, a control bar
+  with 10-second jumps, an in-player episodes drawer (seasons, thumbnails, lengths,
+  watched progress), an audio, subtitles, speed and source menu, keyboard shortcuts,
+  and controls that fade while playing.
+- Next episode: in the last 30 seconds a 5-second countdown card plays the next
+  episode, across seasons, without leaving full screen; a replay screen after the
+  finale.
+- Resume and "Continue watching", kept only in the browser's `localStorage`
+  (`player_history_v1`): exact-second resume, the next episode at 00:00 once an
+  episode passes 90%, and removal from the home row.
+- Deep links `/watch?id=series_456` and `/watch?id=movie_123`, with optional
+  `s`, `e` and `t` that override the saved position, and a "Copy share link" button.
+- Audio track choice and text subtitles (SRT, ASS, MP4 text) as WebVTT, written by the
+  same ffmpeg process, so still one upstream connection. The chosen audio language
+  carries over between episodes.
+- A details card per title with Resume / Start from beginning and the episode list.
+
+### Fixed
+
+- Session folders left behind by a crash were never cleaned at startup: the pattern
+  that recognises them had lost a backslash.
+
 ## [2.3.0] - 2026-10-07
 
 ### Changed
@@ -113,7 +139,8 @@ release splits it into modules and adds an installer.
   could not run the app: before 22.13 `node:sqlite` needs a flag, and before 22.16 the
   bundled SQLite has no FTS5.
 
-[Unreleased]: https://github.com/mohamad-aljeiawi/iptv-hub/compare/v2.3.0...HEAD
+[Unreleased]: https://github.com/mohamad-aljeiawi/iptv-hub/compare/v2.4.0...HEAD
+[2.4.0]: https://github.com/mohamad-aljeiawi/iptv-hub/compare/v2.3.0...v2.4.0
 [2.3.0]: https://github.com/mohamad-aljeiawi/iptv-hub/compare/v2.2.0...v2.3.0
 [2.2.0]: https://github.com/mohamad-aljeiawi/iptv-hub/compare/v2.1.0...v2.2.0
 [2.1.0]: https://github.com/mohamad-aljeiawi/iptv-hub/compare/v2.0.0...v2.1.0

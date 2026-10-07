@@ -23,7 +23,7 @@ before(async () => {
   provider = fakeProvider(media, {
     vod: { 1: ['Direct Film (2001)', 'direct.mp4'], 2: ['Remux Film (2002)', 'remux.mkv'], 3: ['Ac3 Film (2003)', 'ac3.mkv'],
       4: ['Hevc Film (2004)', 'hevc.mkv'], 5: ['Long Film (2005)', 'long.mkv'], 6: ['Other Hevc (2006)', 'hevc.mkv'],
-      7: ['Third Film (2007)', 'remux.mkv'], 8: ['Fourth Film (2008)', 'direct.mp4'] },
+      7: ['Third Film (2007)', 'remux.mkv'], 8: ['Fourth Film (2008)', 'direct.mp4'], 9: ['Multi Film (2009)', 'multi.mkv'] },
     live: { 50: ['Test Channel', 'live.ts'] },
   });
   const url = await provider.listen();
@@ -75,6 +75,29 @@ test('cover art is not mistaken for the video, and the default audio track wins'
   assert.deepEqual([p.video, p.audio, p.mode], [1, 3, 'remux']);
 });
 
+test('the chosen audio track decides the tier', () => {
+  const p = probe('matroska,webm', h264, { ...aac, disposition: { default: 1 } }, { codec_type: 'audio', codec_name: 'ac3', tags: { language: 'ara' } });
+  assert.equal(plan(p, false).mode, 'remux');
+  assert.equal(plan(p, false, 2).mode, 'audio');
+  assert.deepEqual(plan(p, false).audios.map(a => [a.index, a.codec, a.lang]), [[1, 'aac', null], [2, 'ac3', 'ara']]);
+});
+
+test('an MP4 goes as it is only with its default audio and no text subtitles', () => {
+  const two = probe('mov,mp4,m4a,3gp,3g2,mj2', h264, { ...aac, disposition: { default: 1 } }, aac);
+  assert.equal(plan(two, false).mode, 'direct');
+  assert.equal(plan(two, false, 2).mode, 'remux', 'the second track needs HLS');
+  assert.equal(plan(probe('mov,mp4,m4a,3gp,3g2,mj2', h264, aac, { codec_type: 'subtitle', codec_name: 'mov_text' }), false).mode, 'remux');
+});
+
+test('image subtitles are left out, text subtitles become WebVTT outputs', () => {
+  const p = plan(probe('matroska,webm', h264, aac, { codec_type: 'subtitle', codec_name: 'hdmv_pgs_subtitle' },
+    { codec_type: 'subtitle', codec_name: 'subrip', tags: { language: 'eng' } }), false);
+  assert.deepEqual(p.subs.map(t => [t.index, t.lang]), [[3, 'eng']]);
+  const a = ffmpegArgs(p, 'http://x/1.mkv', '/tmp/s', { live: false }).join(' ');
+  assert.match(a, /-map 0:3 -c:s webvtt -f webvtt \S*sub0\.vtt$/);
+  assert.equal(plan(probe('mpegts', h264, aac, { codec_type: 'subtitle', codec_name: 'subrip' }), true).subs.length, 0, 'none on live');
+});
+
 test('nothing playable gives no plan', () => {
   assert.equal(plan(probe('matroska,webm', { codec_type: 'subtitle', codec_name: 'subrip' }), false), null);
 });
@@ -93,9 +116,9 @@ test('re-encoding is capped at 720p with the veryfast preset', () => {
 const login = async () => (await fetch(`${host}/api/login`, { method: 'POST',
   body: JSON.stringify({ username: 'admin', password: 'test-admin-token' }) })).headers.get('set-cookie').split(';')[0];
 const ids = (streamId, type = 'vod') => db.prepare('SELECT item_id, id FROM sources WHERE stream_id=? AND type=?').get(String(streamId), type);
-async function start(cookie, streamId, kind = 'vod') {
+async function start(cookie, streamId, kind = 'vod', extra = {}) {
   const s = ids(streamId, kind);
-  const r = await fetch(`${host}/api/play`, { method: 'POST', headers: { cookie }, body: JSON.stringify({ kind, id: s.item_id, src: s.id }) });
+  const r = await fetch(`${host}/api/play`, { method: 'POST', headers: { cookie }, body: JSON.stringify({ kind, id: s.item_id, src: s.id, ...extra }) });
   const body = { status: r.status, ...(await r.json()) };
   if (body.id) started.push([cookie, body.id]);
   return body;
@@ -226,4 +249,39 @@ test('limits: one full transcode here, three viewers, then "busy"', ffmpeg, asyn
   const sd = await start(d, 7);
   assert.deepEqual([sd.status, sd.busy], [503, 'viewers']);
   for (const [k, s] of [[a, sa], [b, sb2], [c, sc]]) await call(k, s.id, 'stop');
+});
+
+test('audio tracks and text subtitles are offered, subtitles as WebVTT', ffmpeg, async () => {
+  const cookie = await login();
+  const s = await start(cookie, 9);
+  assert.equal(s.tier, 'remux');
+  assert.deepEqual(s.audios.map(a => [a.codec, a.lang]), [['aac', 'eng'], ['ac3', 'ara']]);
+  assert.deepEqual(s.subs.map(t => t.lang), ['eng', 'ara']);
+  await firstSegment(cookie, s.url);
+  const vtt = async i => {
+    let text = '';
+    await until(async () => { const r = await fetch(host + s.subs[i].url, { headers: { cookie } }); text = r.ok ? await r.text() : ''; return text.includes('-->'); });
+    return text;
+  };
+  const en = await vtt(0), ar = await vtt(1);
+  assert.match(en, /^WEBVTT/);
+  assert.match(en, /Hello from the first subtitle/);
+  assert.match(ar, /مرحبا من الترجمة/);
+});
+
+test('switching to the AC3 track converts only the audio, on the same single connection', ffmpeg, async () => {
+  const cookie = await login();
+  const s = await start(cookie, 9);
+  const ara = s.audios.find(a => a.lang === 'ara').index;
+  const r = await (await call(cookie, s.id, 'seek', { t: 0, audio: ara })).json();
+  assert.deepEqual([r.tier, r.audio], ['audio', ara]);
+  assert.equal(codecs(await firstSegment(cookie, r.url)).split(' ').filter(c => c.startsWith('audio')).join(), 'audio:aac');
+  assert.equal(provider.peak('/movie/u/p/9.mkv'), 1);
+});
+
+test('a film can start in the middle (resume)', ffmpeg, async () => {
+  const cookie = await login();
+  const s = await start(cookie, 5, 'vod', { start: 20 });
+  assert.equal(s.start, 20);
+  await firstSegment(cookie, s.url);
 });

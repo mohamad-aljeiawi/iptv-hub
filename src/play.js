@@ -38,29 +38,42 @@ const SEGMENT = 4;           // HLS segment length, seconds
 
 const OK_AUDIO = new Set(['aac', 'mp3']);
 const okVideo = v => v.codec_name === 'h264' && ['yuv420p', 'yuvj420p'].includes(v.pix_fmt);
+// Subtitles that are text and can become WebVTT. Image subtitles (PGS, DVD) would
+// have to be burned into the picture, which means a full re-encode; not offered.
+const TEXT_SUBS = new Set(['subrip', 'srt', 'ass', 'ssa', 'mov_text', 'webvtt', 'text']);
+const MAX_SUBS = 8;
+const lang = s => (s.tags?.language && s.tags.language !== 'und' ? s.tags.language : null);
+const track = s => ({ index: s.index, codec: s.codec_name, lang: lang(s), title: s.tags?.title || null, channels: s.channels || null });
 
-// From ffprobe's JSON to a playback plan. Pure, so the tiers are testable.
-export function plan(probe, live) {
+// From ffprobe's JSON to a playback plan, for the chosen audio track (or the
+// file's default). Pure, so the tiers are testable.
+export function plan(probe, live, audioIndex = null) {
   const streams = probe?.streams || [];
   const v = streams.find(s => s.codec_type === 'video' && !s.disposition?.attached_pic);
   const audios = streams.filter(s => s.codec_type === 'audio');
-  const a = audios.find(s => s.disposition?.default) || audios[0];
+  const def = audios.find(s => s.disposition?.default) || audios[0];
+  const a = audios.find(s => s.index === audioIndex) || def;
   if (!v && !a) return null;
+  const subs = live ? [] : streams.filter(s => s.codec_type === 'subtitle' && TEXT_SUBS.has(s.codec_name)).slice(0, MAX_SUBS);
   const videoOk = !v || okVideo(v), audioOk = !a || OK_AUDIO.has(a.codec_name);
   const mp4 = /(^|,)(mp4|mov)(,|$)/.test(probe.format?.format_name || '');
-  const mode = !live && mp4 && videoOk && audioOk ? 'direct'
+  // The file can only go to the browser as it is when it plays the file's default
+  // audio and has no subtitles to show; anything else needs HLS.
+  const mode = !live && mp4 && videoOk && audioOk && a === def && !subs.length ? 'direct'
     : videoOk && audioOk ? 'remux'
     : videoOk ? 'audio'
     : 'transcode';
   const duration = live ? null : (+probe.format?.duration || null);
-  return { mode, video: v ? v.index : null, audio: a ? a.index : null, duration };
+  return { mode, video: v ? v.index : null, audio: a ? a.index : null, duration,
+    audios: audios.map(track), subs: subs.map(track) };
 }
 
 export function ffmpegArgs(p, url, dir, { live, start = 0 }) {
   const a = ['-hide_banner', '-loglevel', 'error', '-nostdin', '-user_agent', UA,
     '-reconnect', '1', '-reconnect_on_network_error', '1', '-reconnect_delay_max', '5', '-rw_timeout', '15000000'];
   // Films are read at twice real time after a quick start, so a paused or
-  // abandoned film does not pull the whole file. Live input is real time already.
+  // abandoned film does not pull the whole file, and playback at up to 1.5x never
+  // catches up with the conversion. Live input is real time already.
   if (!live) a.push('-readrate', '2', '-readrate_initial_burst', '20');
   else a.push('-reconnect_streamed', '1');
   if (start > 0) a.push('-ss', String(start));
@@ -84,13 +97,16 @@ export function ffmpegArgs(p, url, dir, { live, start = 0 }) {
   if (live) a.push('-hls_list_size', '8', '-hls_flags', 'delete_segments+independent_segments');
   else a.push('-hls_playlist_type', 'event', '-hls_list_size', '0');
   a.push(path.join(dir, 'index.m3u8'));
+  // Text subtitles come out of the same process, read from the same single
+  // connection: one WebVTT file per track, written as the film is read.
+  (p.subs || []).forEach((sub, i) => a.push('-map', `0:${sub.index}`, '-c:s', 'webvtt', '-f', 'webvtt', path.join(dir, `sub${i}.vtt`)));
   return a;
 }
 
 function ffprobe(url) {
   return new Promise((ok, bad) => execFile(FFPROBE, ['-v', 'error', '-user_agent', UA, '-rw_timeout', '15000000',
     '-probesize', '2000000', '-analyzeduration', '3000000',
-    '-show_entries', 'format=format_name,duration:stream=index,codec_type,codec_name,pix_fmt:stream_disposition=default,attached_pic',
+    '-show_entries', 'format=format_name,duration:stream=index,codec_type,codec_name,pix_fmt,channels:stream_tags=language,title:stream_disposition=default,attached_pic',
     '-of', 'json', url], { timeout: 30000, maxBuffer: 1 << 20, windowsHide: true },
   (err, out) => { if (err) return bad(err); try { ok(JSON.parse(out)); } catch (e) { bad(e); } }));
 }
@@ -99,7 +115,7 @@ function ffprobe(url) {
 // ten minutes for channels. A replay or a seek then costs no extra connection.
 const liveProbes = new Map();
 async function probeOnce(key, url, live) {
-  if (!live) return kvCache(`probe:${key}`, 7 * 86400e3, () => ffprobe(url));
+  if (!live) return kvCache(`probe2:${key}`, 7 * 86400e3, () => ffprobe(url));
   const hit = liveProbes.get(key);
   if (hit && hit.exp > Date.now()) return hit.v;
   const v = await ffprobe(url);
@@ -169,7 +185,7 @@ process.on('exit', () => { for (const s of sessions.values()) s.proc?.kill('SIGK
 // Clear session folders left by a previous run. Only names this module creates
 // are touched, in case PLAY_DIR points somewhere shared.
 fs.mkdirSync(PLAY_DIR, { recursive: true });
-for (const d of fs.readdirSync(PLAY_DIR)) if (/^[w-]{16}$/.test(d)) fs.rmSync(path.join(PLAY_DIR, d), { recursive: true, force: true });
+for (const d of fs.readdirSync(PLAY_DIR)) if (/^[\w-]{16}$/.test(d)) fs.rmSync(path.join(PLAY_DIR, d), { recursive: true, force: true });
 
 // ───────────────────────── the one upstream connection ─────────────────────────
 //
@@ -265,7 +281,9 @@ async function waitFor(file, s, gen, ms = 30000) {
 
 const hlsUrl = s => `/play/${s.id}/${s.gen}/index.m3u8`;
 const describe = s => ({ id: s.id, mode: s.plan.mode === 'direct' ? 'direct' : 'hls', tier: s.plan.mode, live: s.live,
-  duration: s.plan.duration, start: s.start || 0, url: s.plan.mode === 'direct' ? `/play/${s.id}/direct` : hlsUrl(s) });
+  duration: s.plan.duration, start: s.start || 0, url: s.plan.mode === 'direct' ? `/play/${s.id}/direct` : hlsUrl(s),
+  audio: s.plan.audio, audios: s.plan.audios,
+  subs: s.plan.subs.map((t, i) => ({ ...t, url: `/play/${s.id}/${s.gen}/sub${i}.vtt` })) });
 
 export async function playRoutes(ctx) {
   const { req, res, path: p, method } = ctx;
@@ -275,7 +293,7 @@ export async function playRoutes(ctx) {
   if (!web) { send(req, res, 401, { error: 'سجّل الدخول أولاً' }); return true; }
   let m;
 
-  // Start watching: POST /api/play {kind, id, src}
+  // Start watching: POST /api/play {kind, id, src, start?, audio?}
   if (p === '/api/play' && method === 'POST') {
     const b = await readBody(req).catch(() => ({}));
     const kind = ['live', 'vod', 'series'].includes(b.kind) ? b.kind : null;
@@ -303,7 +321,8 @@ export async function playRoutes(ctx) {
         else send(req, res, 502, { error: 'المصدر لم يستجب' });
         return true;
       }
-      const pl = plan(probe, s.live);
+      s.probe = probe;
+      const pl = plan(probe, s.live, b.audio == null ? null : +b.audio);
       // User-facing (Arabic): "this stream has no playable video or audio".
       if (!pl) { await stop(s); send(req, res, 415, { error: 'لا يحتوي هذا المصدر على صوت أو صورة قابلة للتشغيل' }); return true; }
       if (pl.mode === 'transcode' && transcodes() >= PLAY_MAX_TRANSCODES) {
@@ -314,7 +333,10 @@ export async function playRoutes(ctx) {
       }
       s.plan = pl;
       if (!sessions.has(s.id)) { send(req, res, 410, { error: 'stopped' }); return true; }
-      if (pl.mode !== 'direct') await startFfmpeg(s, 0);
+      // Resuming a film starts the conversion at that second. A direct file seeks in
+      // the browser instead.
+      const start = s.live ? 0 : Math.max(0, Math.min(Math.floor(+b.start || 0), (pl.duration || Infinity) - 1));
+      if (pl.mode !== 'direct') await startFfmpeg(s, start);
       send(req, res, 200, describe(s));
     } catch (e) {
       await stop(s);
@@ -329,10 +351,22 @@ export async function playRoutes(ctx) {
     s.seen = Date.now();
     if (m[2] === 'ping') { send(req, res, 200, { ok: true, error: s.error ? 'stream failed' : null }); return true; }
     if (m[2] === 'stop') { await stop(s); send(req, res, 200, { ok: true }); return true; }
-    // seek: restart ffmpeg at the requested second (films and episodes only)
+    // seek: restart ffmpeg at second t, optionally with another audio track. A
+    // direct file only comes here to change audio, and becomes HLS for it.
     const b = await readBody(req).catch(() => ({}));
-    if (s.live || !s.plan || s.plan.mode === 'direct') { send(req, res, 400, { error: 'not seekable here' }); return true; }
-    const t = Math.max(0, Math.min(+b.t || 0, (s.plan.duration || Infinity) - 1));
+    if (!s.plan) { send(req, res, 409, { error: 'starting' }); return true; }
+    const audio = b.audio == null ? s.plan.audio : +b.audio;
+    if (audio !== s.plan.audio) {
+      const next = plan(s.probe, s.live, audio);
+      if (next.mode === 'direct') next.mode = 'remux';
+      if (next.mode === 'transcode' && s.plan.mode !== 'transcode' && transcodes() >= PLAY_MAX_TRANSCODES) {
+        // User-facing (Arabic): "the server is converting too many videos right now".
+        send(req, res, 503, { busy: 'transcode', error: 'الخادم يحوّل عدداً كبيراً من الفيديوهات الآن' });
+        return true;
+      }
+      s.plan = next;
+    } else if (s.plan.mode === 'direct' || s.live) { send(req, res, 400, { error: 'not seekable here' }); return true; }
+    const t = s.live ? 0 : Math.max(0, Math.min(+b.t || 0, (s.plan.duration || Infinity) - 1));
     await startFfmpeg(s, Math.floor(t));
     send(req, res, 200, describe(s));
     return true;
@@ -347,7 +381,7 @@ export async function playRoutes(ctx) {
       await relayUpstream(req, res, s);
       return true;
     }
-    const f = m[2].match(/^(\d+)\/(index\.m3u8|seg\d{5}\.ts)$/);
+    const f = m[2].match(/^(\d+)\/(index\.m3u8|seg\d{5}\.ts|sub\d\.vtt)$/);
     if (!f || +f[1] !== s.gen) { send(req, res, 404, 'not found'); return true; }
     const file = path.join(PLAY_DIR, s.id, f[1], f[2]);
     if (f[2] === 'index.m3u8') {
@@ -360,7 +394,9 @@ export async function playRoutes(ctx) {
     }
     const st = await fsp.stat(file).catch(() => null);
     if (!st) { send(req, res, 404, 'not found'); return true; }
-    res.writeHead(200, { 'Content-Type': 'video/mp2t', 'Content-Length': st.size, 'Cache-Control': 'no-store' });
+    // Subtitle files grow while the film is read; the player fetches them again.
+    const type = f[2].endsWith('.vtt') ? 'text/vtt; charset=utf-8' : 'video/mp2t';
+    res.writeHead(200, { 'Content-Type': type, 'Content-Length': st.size, 'Cache-Control': 'no-store' });
     if (req.method === 'HEAD') { res.end(); return true; }
     fs.createReadStream(file).on('error', () => res.destroy()).pipe(res);
     return true;

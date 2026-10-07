@@ -1,6 +1,6 @@
 {
   "name": "iptv-hub",
-  "version": "2.3.0",
+  "version": "2.4.0",
   "description": "A virtual Xtream Codes server that merges several IPTV providers into one catalogue without duplicates, and answers every stream with a 302 redirect so video never passes through it",
   "keywords": [
     "iptv",

@@ -247,6 +247,43 @@ grainy films can stutter when the re-encode slots are all in use; lower
 The "external player" buttons stay under every title. They use the normal player links,
 which cost the server nothing.
 
+### The player
+
+A full-screen player in the style of Netflix, in Arabic and right to left:
+
+- **Resume.** Opening a film or series you have started offers "Resume" at the exact
+  second, next to "Start from beginning". A title you have never opened starts at
+  Season 1, Episode 1, at 00:00.
+- **Next episode.** In the last 30 seconds a card counts down from 5 and plays the next
+  episode, rolling from a season finale into Episode 1 of the next season, without
+  leaving full screen. After the series finale there is a replay screen instead.
+- **Episodes drawer.** All seasons and episodes, with thumbnails, lengths and how much
+  of each you have watched, inside the player.
+- **Audio and subtitles.** Every audio track in the file (switching converts only what it
+  must), text subtitles (SRT, ASS, MP4 text) as WebVTT, and speeds from 0.5x to 1.5x.
+  The chosen audio language carries over to the next episode.
+- **Keyboard.** Space or K to pause, arrows for 10 seconds, F for full screen, M to mute,
+  Esc to go back.
+
+**Your progress stays in your browser.** It is kept in `localStorage` under
+`player_history_v1` and never sent to the server, so each browser, device and private
+window has its own history. The home page shows it as "Continue watching", where the ✕
+on a card forgets that title. (To start a film at 23:45 the player does tell the
+server "start at second 1425"; that is a request to play, not a record of what you
+watched, and the server keeps nothing.)
+
+**Deep links,** for a Telegram bot or anywhere else. "Copy share link" on every title
+gives the plain form:
+
+| Link | Opens |
+|---|---|
+| `/watch?id=series_456` | Resume where this browser left off, or Season 1, Episode 1 if it never watched it |
+| `/watch?id=movie_123` | The same for a film |
+| `/watch?id=series_456&s=2&e=3&t=120` | Season 2, Episode 3 at 2:00, whatever the history says |
+
+The number is the title's id on this server. A visitor who is not logged in sees the
+login first, then the link continues.
+
 ## Running locally
 
 Requires Node.js 22.16 or newer. Earlier 22.x releases either lack `node:sqlite` without
@@ -308,6 +345,9 @@ The real `.env` holds your admin password and is never committed.
 | EPG comes from the provider that carries the most channels, so channels that exist only on another provider may have no guide | None yet |
 | In-browser playback costs the server bandwidth, and CPU when re-encoding; it is capped at 5 viewers and 3 re-encodes ([details](#playing-in-the-browser)) | Players and the external-player buttons cost nothing; raise or lower the caps in `.env` |
 | Seeking into a part of a converted film that is not ready yet restarts the conversion there, which takes a few seconds | None needed; seeking back inside what is ready is instant |
+| Image subtitles (PGS, DVD), common in Blu-ray rips, are not offered: showing them would mean burning them into a full re-encode | Use an external player, which shows them natively |
+| Watch history is per browser: a phone and a laptop each have their own, and clearing site data erases it | By design (nothing is stored on the server). "Copy share link" with `s`, `e` and `t` moves a position between devices by hand |
+| A link opened from Telegram may wait for one tap before sound plays: browsers block autoplay with sound until the visitor interacts | Tap the large play button |
 | The installer targets apt-based systems (Ubuntu 22.04/24.04, Debian 12) | On other distributions, run `npm start` under your own service manager and proxy |
 
 ## Development

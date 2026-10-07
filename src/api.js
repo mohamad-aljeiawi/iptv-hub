@@ -18,6 +18,25 @@ const publicServer = s => ({ id: s.id, name: s.name, host: new URL(s.url).host, 
   items: db.prepare('SELECT count(*) c FROM sources WHERE server_id=?').get(s.id).c });
 
 const imgCache = lru(400);
+// Episode thumbnails, filled whenever a series' episode list is served.
+const episodeImages = lru(5000);
+
+// Seconds from Xtream's duration_secs, or from "HH:MM:SS".
+const secondsOf = info => +info?.duration_secs
+  || String(info?.duration || '').split(':').reduce((t, n) => t * 60 + (+n || 0), 0) || null;
+
+// Images come from the providers over plain HTTP, which an HTTPS page cannot load,
+// so they are fetched here and cached.
+async function sendImage(res, url) {
+  let img = imgCache.get(url);
+  if (!img) {
+    const r = await fetch(url, { headers: { 'User-Agent': UA }, signal: AbortSignal.timeout(8000) }).catch(() => null);
+    if (!r?.ok) { res.writeHead(404).end(); return; }
+    img = imgCache.set(url, { type: r.headers.get('content-type') || 'image/jpeg', buf: Buffer.from(await r.arrayBuffer()) });
+  }
+  res.writeHead(200, { 'Content-Type': img.type, 'Cache-Control': 'public, max-age=604800, immutable' });
+  res.end(img.buf);
+}
 
 // Brute-force protection for login: 5 failed attempts per minute per IP.
 // nginx also applies limit_req; this is a second layer that works behind any
@@ -34,24 +53,24 @@ function loginBlocked(req) {
 }
 
 export async function uiRoutes({ req, res, path: p }) {
-  if (p === '/' || p === '/index.html') {
+  // /watch?id=series_456 is a deep link into the same page (e.g. from a Telegram bot).
+  if (p === '/' || p === '/index.html' || p === '/watch') {
     const html = await readFile(path.join(PUBLIC_DIR, 'index.html'));
     res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
     res.end(html);
     return true;
   }
-  const m = p.match(/^\/img\/(\d+)$/);
+  let m = p.match(/^\/img\/(\d+)$/);
   if (m) {
     const it = db.prepare('SELECT poster FROM items WHERE id=?').get(+m[1]);
     if (!it?.poster) { res.writeHead(404).end(); return true; }
-    let img = imgCache.get(it.poster);
-    if (!img) {
-      const r = await fetch(it.poster, { headers: { 'User-Agent': UA }, signal: AbortSignal.timeout(8000) }).catch(() => null);
-      if (!r?.ok) { res.writeHead(404).end(); return true; }
-      img = imgCache.set(it.poster, { type: r.headers.get('content-type') || 'image/jpeg', buf: Buffer.from(await r.arrayBuffer()) });
-    }
-    res.writeHead(200, { 'Content-Type': img.type, 'Cache-Control': 'public, max-age=604800, immutable' });
-    res.end(img.buf);
+    await sendImage(res, it.poster);
+    return true;
+  }
+  if ((m = p.match(/^\/img\/e\/(\d+)$/))) {
+    const url = episodeImages.get(+m[1]);
+    if (!url) { res.writeHead(404).end(); return true; }
+    await sendImage(res, url);
     return true;
   }
   return false;
@@ -115,9 +134,13 @@ export async function apiRoutes(ctx) {
     const seasons = new Map();
     for (const e of d.eps) {
       if (!seasons.has(e._season)) seasons.set(e._season, []);
-      seasons.get(e._season).push({ vid: e._vid, num: e._num, title: e.title || '', plot: e.info?.plot || '', duration: e.info?.duration || '' });
+      const pic = e.info?.movie_image || e.info?.cover_big || null;
+      if (pic) episodeImages.set(e._vid, pic);
+      seasons.get(e._season).push({ vid: e._vid, num: e._num, title: e.title || '', plot: e.info?.plot || '', duration: e.info?.duration || '',
+        secs: secondsOf(e.info), img: pic ? `/img/e/${e._vid}` : null });
     }
-    return send(req, res, 200, { plot: d.primary.info?.plot || '', seasons: [...seasons].map(([season, episodes]) => ({ season, episodes })) }), true;
+    return send(req, res, 200, { plot: d.primary.info?.plot || '', seasons: [...seasons].sort((a, b) => a[0] - b[0])
+      .map(([season, episodes]) => ({ season, episodes: episodes.sort((a, b) => a.num - b.num) })) }), true;
   }
 
   // ── admin only from here on ──
