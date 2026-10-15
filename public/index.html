@@ -343,6 +343,32 @@ form .full{grid-column:1/-1}
 }
 @media (prefers-reduced-motion:reduce){ *,*::before,*::after{animation:none!important;transition:none!important} }
 </style>
+<!-- Old browsers, such as Chrome 52 on Android TV boxes, cannot parse the page script
+     at the end (it needs ES2021). This test switches them to public/legacy/: the same
+     script compiled for them by scripts/build-legacy.mjs, polyfills, and fallbacks for
+     the newer CSS. The page script then fails to parse there, which is harmless.
+     Plain ES5 on purpose. -->
+<script>
+(function () {
+  try { new Function('var a = {}; a.b ??= a?.c; (async function () { await 0; })'); return; } catch (e) { /* old browser */ }
+  var version = 'fcd3b82fc1ac'; // set by scripts/build-legacy.mjs
+  var d = document;
+  d.documentElement.className += ' legacy';
+  var css = d.createElement('link');
+  css.rel = 'stylesheet';
+  css.href = '/legacy/legacy.css?v=' + version;
+  d.head.appendChild(css);
+  // Scripts added later run as soon as they arrive, so wait for the page to exist.
+  d.addEventListener('DOMContentLoaded', function () {
+    ['polyfills.js', 'app.js'].forEach(function (f) {
+      var s = d.createElement('script');
+      s.src = '/legacy/' + f + '?v=' + version;
+      s.async = false;
+      d.body.appendChild(s);
+    });
+  });
+})();
+</script>
 </head>
 <body>
 <!-- Top bar. User-facing labels: home, films, series, live TV, search, account menu. -->
@@ -511,7 +537,7 @@ form .full{grid-column:1/-1}
   </div>
 </dialog>
 
-<script>
+<script id="app">
 const $ = s => document.querySelector(s);
 const $$ = s => [...document.querySelectorAll(s)];
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));

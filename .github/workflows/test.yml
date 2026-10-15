@@ -31,6 +31,19 @@ jobs:
       - name: Test
         run: npm test
 
+  legacy:
+    name: Old-browser build is current
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22.x'
+      - name: Rebuild public/legacy/app.js and compare with the committed one
+        run: |
+          npm run build:legacy
+          git diff --exit-code -- public/
+
   shellcheck:
     name: shellcheck
     runs-on: ubuntu-latest

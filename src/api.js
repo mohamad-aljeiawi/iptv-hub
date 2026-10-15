@@ -4,10 +4,11 @@
 // by the Arabic interface in public/index.html, so they stay in Arabic on purpose.
 // Everything else in this repository is English (see CLAUDE.md).
 import path from 'node:path';
+import zlib from 'node:zlib';
 import { readFile } from 'node:fs/promises';
 import { db, itemById, checkUser, session, newSession, kvDel, cleanupOrphans } from './db.js';
 import { PUBLIC_DIR, UA } from './config.js';
-import { send, readBody, origin, clearCaches, lru, clientIp } from './http.js';
+import { send, sendCached, readBody, origin, clearCaches, lru, clientIp } from './http.js';
 import { xt, scheduleSync, down, syncing } from './sync.js';
 import { ranked } from './resolve.js';
 import { search, COLS } from './search.js';
@@ -38,6 +39,20 @@ async function sendImage(res, url) {
   res.end(img.buf);
 }
 
+// The page's fallback for old browsers, loaded only by the bootstrap in index.html.
+// Its URLs carry a content version, so browsers may keep the files for good. Each is
+// read and compressed once per process.
+const LEGACY_TYPES = { js: 'text/javascript; charset=utf-8', css: 'text/css; charset=utf-8' };
+const legacyFiles = new Map();
+async function sendLegacy(req, res, name) {
+  let c = legacyFiles.get(name);
+  if (!c) {
+    const raw = await readFile(path.join(PUBLIC_DIR, 'legacy', name));
+    legacyFiles.set(name, c = { raw, gz: zlib.gzipSync(raw) });
+  }
+  sendCached(req, res, c, LEGACY_TYPES[path.extname(name).slice(1)], { 'Cache-Control': 'public, max-age=31536000, immutable' });
+}
+
 // Brute-force protection for login: 5 failed attempts per minute per IP.
 // nginx also applies limit_req; this is a second layer that works behind any
 // proxy (Caddy, for instance, has no built-in rate limiting).
@@ -60,8 +75,9 @@ export async function uiRoutes({ req, res, path: p }) {
     res.end(html);
     return true;
   }
-  let m = p.match(/^\/img\/(\d+)$/);
-  if (m) {
+  let m = p.match(/^\/legacy\/(app\.js|polyfills\.js|legacy\.css)$/);
+  if (m) { await sendLegacy(req, res, m[1]); return true; }
+  if ((m = p.match(/^\/img\/(\d+)$/))) {
     const it = db.prepare('SELECT poster FROM items WHERE id=?').get(+m[1]);
     if (!it?.poster) { res.writeHead(404).end(); return true; }
     await sendImage(res, it.poster);

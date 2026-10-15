@@ -11,7 +11,11 @@ The licence was a free choice, because nothing in the project constrains it:
   `node:http`, `node:test`, `fetch`). Node.js itself is MIT-licensed, and the SQLite it
   bundles is in the public domain.
 - **No derived or vendored code.** Every file in the repository was written for this
-  project.
+  project, with one generated exception: `public/legacy/app.js` is the page script
+  compiled by esbuild for old browsers, and contains esbuild's small runtime helpers
+  for `async` functions and object spread. esbuild is MIT-licensed, Copyright (c)
+  2020 Evan Wallace. It runs only on a developer's machine, through `npx`, and is not
+  a dependency.
 - **No bundled assets.** No fonts, icons, images or datasets ship in the repository.
 
 If a dependency is ever added, check its licence before merging. A GPL or AGPL dependency

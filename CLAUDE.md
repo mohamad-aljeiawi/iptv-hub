@@ -25,6 +25,12 @@ an English comment explaining what it is. Everything else: English.
 
 - **No external dependencies.** Node 22.16+ built-ins only (`node:sqlite`,
   `node:test`, `fetch`). Do not add a `dependencies` block to `package.json`.
+- **The page script has a compiled copy for old browsers** (Chrome 52 TV boxes) in
+  `public/legacy/app.js`. After changing `<script id="app">` in `public/index.html`
+  or any file in `public/legacy/`, run `npm run build:legacy` and commit the result;
+  `npm test` fails otherwise. Never edit `public/legacy/app.js` by hand. The bootstrap
+  in `index.html` and `public/legacy/polyfills.js` stay plain ES5. esbuild runs only
+  through `npx` in that script; it is not a dependency.
 - **Module dependencies flow one way**, no cycles:
   `config -> db -> normalize/http -> sync -> resolve -> xtream/play -> api -> index`.
   `http.js` must not import a feature module; use the `onClear()` hook instead.

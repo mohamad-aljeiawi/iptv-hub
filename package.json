@@ -1,6 +1,6 @@
 {
   "name": "iptv-hub",
-  "version": "2.5.0",
+  "version": "2.6.0",
   "description": "A virtual Xtream Codes server that merges several IPTV providers into one catalogue without duplicates, and answers every stream with a 302 redirect so video never passes through it",
   "keywords": [
     "iptv",
@@ -34,6 +34,7 @@
     "start": "node --no-warnings src/index.js",
     "dev": "node --no-warnings scripts/dev.js",
     "mocks": "node --no-warnings test/mock-xtream.js",
-    "test": "node --no-warnings --test test/*.test.js"
+    "test": "node --no-warnings --test test/*.test.js",
+    "build:legacy": "node scripts/build-legacy.mjs"
   }
 }

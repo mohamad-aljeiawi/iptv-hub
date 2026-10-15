@@ -7,6 +7,21 @@ project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [2.6.0] - 2026-10-15
+
+### Added
+
+- The web interface works in old browsers, down to Chrome 52, the built-in browser
+  engine of many Android 7 TV boxes. There the page appeared but nothing worked, because
+  its script needs ES2021. A feature test at the top of the page now sends such
+  browsers to `public/legacy/`: the page script compiled for Chrome 52, polyfills, and
+  fallbacks for grid, `gap`, `aspect-ratio` and other newer CSS. Modern browsers run
+  the page as before and download nothing more; old ones download about 22 KB more,
+  compressed.
+- `npm run build:legacy` rebuilds the compiled copy (esbuild through `npx`, never a
+  dependency). The output is committed, `npm test` fails while it is out of date, and
+  CI checks that it matches a fresh build.
+
 ## [2.5.0] - 2026-10-07
 
 ### Changed
@@ -188,7 +203,8 @@ release splits it into modules and adds an installer.
   could not run the app: before 22.13 `node:sqlite` needs a flag, and before 22.16 the
   bundled SQLite has no FTS5.
 
-[Unreleased]: https://github.com/mohamad-aljeiawi/iptv-hub/compare/v2.5.0...HEAD
+[Unreleased]: https://github.com/mohamad-aljeiawi/iptv-hub/compare/v2.6.0...HEAD
+[2.6.0]: https://github.com/mohamad-aljeiawi/iptv-hub/compare/v2.5.0...v2.6.0
 [2.5.0]: https://github.com/mohamad-aljeiawi/iptv-hub/compare/v2.4.1...v2.5.0
 [2.4.1]: https://github.com/mohamad-aljeiawi/iptv-hub/compare/v2.4.0...v2.4.1
 [2.4.0]: https://github.com/mohamad-aljeiawi/iptv-hub/compare/v2.3.0...v2.4.0

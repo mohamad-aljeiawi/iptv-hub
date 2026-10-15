@@ -1,0 +1,187 @@
+/* Layout for old browsers, such as Chrome 52 on Android 7 TV boxes. Loaded by the
+   bootstrap in index.html after the main sheet, and never by modern browsers.
+
+   Those browsers drop what they do not know: grid, gap, aspect-ratio, inset, the
+   inline/block logical properties, min()/clamp(), sticky, env(), dvh and hsl() with
+   spaces. This sheet only adds fallbacks for them, in the same order as the main
+   sheet. Everything is scoped to html.legacy, so it outranks the main sheet; where
+   the main sheet changes a property for phones, the fallback is split by width too.
+   The page is always right-to-left: inline-start is right, inline-end is left. */
+
+/* clamp(a, Nvw, b) becomes Nvw, with a and b set from the widths where it reaches them. */
+html.legacy{--pad:4vw}
+@media (min-width:1200px){html.legacy{--pad:48px}}
+@media (max-width:400px){html.legacy{--pad:16px}}
+.legacy :focus{outline:2px solid var(--accent);outline-offset:2px}
+
+/* ── buttons ── */
+.legacy .primary>*+*,.legacy .ghost>*+*{-webkit-margin-start:8px}
+.legacy .icon-btn,.legacy .logo-mark{display:-webkit-flex;display:flex;-webkit-align-items:center;align-items:center;-webkit-justify-content:center;justify-content:center}
+
+/* ── top bar and tab bar ── */
+.legacy body{padding-top:var(--nav-h)}
+.legacy .top{position:fixed;top:0;left:0;right:0}
+.legacy .top-in{padding-left:var(--pad);padding-right:var(--pad)}
+.legacy .top-in>*+*{-webkit-margin-start:20px}
+.legacy .logo>*+*{-webkit-margin-start:10px}
+.legacy .nav>*+*{-webkit-margin-start:2px}
+.legacy .search>*+*{-webkit-margin-start:8px}
+.legacy .top-in>.search{-webkit-margin-start:auto;width:340px;max-width:30vw}
+.legacy .search input::-webkit-input-placeholder{color:var(--dim)}
+.legacy .menu{left:0}
+.legacy .menu button>*+*{-webkit-margin-start:10px}
+
+/* ── home: featured hero ── */
+.legacy .slide{top:0;right:0;bottom:0;left:0;
+  background:radial-gradient(90% 130% at 0% 50%,hsla(var(--h),60%,24%,.9),transparent 70%),radial-gradient(70% 90% at 100% 100%,rgba(255,122,69,.12),transparent 70%),var(--bg2)}
+.legacy .hero-art{top:0;bottom:0;left:0}
+.legacy .kicker>*+*{-webkit-margin-start:6px}
+.legacy .hero-dots{left:22px}
+.legacy .hero-dots>*+*{-webkit-margin-start:6px}
+.legacy .cta{margin-bottom:-10px}
+.legacy .cta>*{-webkit-margin-end:10px;margin-bottom:10px}
+.legacy .hero h1{font-size:4.4vw}
+@media (min-width:1164px){ .legacy .hero h1{font-size:3.2rem} }
+@media (max-width:618px){ .legacy .hero h1{font-size:1.7rem} }
+@media (min-width:861px){
+  .legacy .hero{min-height:40vw}
+  .legacy .hero-art{width:44%;max-width:400px}
+  .legacy .hero-in{padding:4vw;max-width:62%}
+}
+@media (min-width:1175px){ .legacy .hero{min-height:470px} }
+@media (min-width:1300px){ .legacy .hero-in{padding:52px} }
+
+/* ── shelves: horizontal rows ── */
+.legacy .rail{display:-webkit-flex;display:flex}
+.legacy .rail>*{-webkit-flex:none;flex:none;width:var(--cw,158px);-webkit-margin-end:14px}
+.legacy .rail-btn{display:-webkit-flex;display:flex;-webkit-align-items:center;align-items:center;-webkit-justify-content:center;justify-content:center}
+.legacy .rail-btn.prev{right:-14px}
+.legacy .rail-btn.next{left:-14px}
+@media (max-width:860px){ .legacy .rail>*{width:var(--cw,122px);-webkit-margin-end:10px} }
+
+/* ── poster cards: 2:3 through the padding trick ── */
+.legacy .card .art{height:0;padding-top:150%;background:linear-gradient(160deg,hsl(var(--h,220),42%,30%),hsl(var(--h,220),48%,12%))}
+.legacy .card img,.legacy .card .ph{top:0;right:0;bottom:0;left:0}
+.legacy .card .badge{right:8px}
+
+/* ── channel cards: 16:10. Chrome 52 gives buttons align-items:flex-start, which
+   shrinks the logo to nothing inside the flex column. ── */
+.legacy .chan{-webkit-align-items:stretch;align-items:stretch}
+.legacy .chan .logo{display:block;height:0;padding-top:62.5%}
+.legacy .chan .logo .ph{position:absolute;top:0;right:0;bottom:0;left:0;display:-webkit-flex;display:flex;-webkit-align-items:center;align-items:center;-webkit-justify-content:center;justify-content:center}
+.legacy .chan .logo img{top:16%;right:22%;bottom:16%;left:22%}
+.legacy .chan .live{right:8px}
+.legacy .chan .name{display:block;margin-top:9px}
+
+/* ── continue watching: 16:9 ── */
+.legacy .cw-card .art{height:0;padding-top:56.25%}
+.legacy .cw-card .art img{position:absolute;top:0;left:0}
+.legacy .cw-card .art::after,.legacy .cw-card .play{top:0;right:0;bottom:0;left:0}
+.legacy .cw-card .play,.legacy .cw-card .play span{display:-webkit-flex;display:flex;-webkit-align-items:center;align-items:center;-webkit-justify-content:center;justify-content:center}
+.legacy .cw-card .bar{left:0;right:0}
+.legacy .cw-card .forget{left:8px}
+
+/* ── browse pages: a fixed number of columns per width instead of auto-fill ── */
+.legacy .page-head h1{font-size:3vw}
+@media (min-width:1067px){ .legacy .page-head h1{font-size:2rem} }
+@media (max-width:800px){ .legacy .page-head h1{font-size:1.5rem} }
+.legacy .chip+.chip{-webkit-margin-start:8px}
+.legacy .chip small{-webkit-margin-start:2px}
+.legacy .grid-cards,.legacy .grid-chans{display:-webkit-flex;display:flex;-webkit-flex-wrap:wrap;flex-wrap:wrap;margin:0 -8px}
+.legacy .grid-cards>*{width:calc(100% / var(--cols) - 16px);margin:0 8px 24px}
+.legacy .grid-chans>*{width:calc(100% / var(--chcols) - 14px);margin:0 7px 20px}
+html.legacy{--cols:5;--chcols:4}
+@media (min-width:1040px){html.legacy{--cols:6;--chcols:5}}
+@media (min-width:1220px){html.legacy{--cols:7;--chcols:6}}
+@media (min-width:1400px){html.legacy{--cols:8;--chcols:7}}
+@media (max-width:860px){
+  html.legacy{--cols:6;--chcols:5}
+  .legacy .grid-cards>*{width:calc(100% / var(--cols) - 10px);margin:0 5px 18px}
+  .legacy .grid-chans>*{width:calc(100% / var(--chcols) - 10px);margin:0 5px 16px}
+}
+@media (max-width:760px){html.legacy{--cols:5;--chcols:4}}
+@media (max-width:640px){html.legacy{--cols:4;--chcols:3}}
+@media (max-width:520px){html.legacy{--cols:3;--chcols:2}}
+
+/* ── dialogs ── */
+.legacy dialog{width:960px;max-width:96vw}
+.legacy #login{width:420px;max-width:92vw}
+.legacy .login-brand>*+*{-webkit-margin-start:10px}
+.legacy #login form{display:block}
+.legacy #login form>*{display:block;width:100%;margin:0 0 12px}
+
+/* ── title details ── */
+.legacy .det{width:1000px;max-width:96vw;overflow-x:hidden;overflow-y:auto}
+.legacy .det-hero{display:-webkit-flex;display:flex;-webkit-align-items:flex-start;align-items:flex-start;
+  background:radial-gradient(90% 140% at 100% 0%,hsla(var(--h,220),55%,22%,.95),transparent 65%),var(--surface)}
+.legacy .det-hero>div:nth-child(2){-webkit-flex:1;flex:1;min-width:0;margin:0 26px}
+.legacy #dArt{-webkit-flex:none;flex:none}
+.legacy #dArt img,.legacy #dArt .ph{height:270px;background:linear-gradient(160deg,hsl(var(--h,220),42%,30%),hsl(var(--h,220),48%,12%))}
+.legacy .det-hero h3{font-size:3vw}
+@media (min-width:1067px){ .legacy .det-hero h3{font-size:2rem} }
+@media (max-width:747px){ .legacy .det-hero h3{font-size:1.4rem} }
+@media (max-width:860px){
+  .legacy dialog.det{height:100vh;max-height:100vh}
+  .legacy .det-hero>div:nth-child(2){margin:0 16px 0 0}
+  .legacy #dArt img,.legacy #dArt .ph{height:168px}
+  .legacy .det-hero .x{left:8px}
+}
+
+/* ── episode cards ── */
+.legacy .ep-list{display:block}
+.legacy .ep-list>*+*{margin-top:6px}
+.legacy .ep{display:-webkit-flex;display:flex;-webkit-align-items:center;align-items:center;width:100%}
+.legacy .ep .n{-webkit-flex:none;flex:none}
+.legacy .ep .thumb{-webkit-flex:none;flex:none;height:74px;margin:0 14px}
+.legacy .ep>:last-child{-webkit-flex:1;flex:1;min-width:0}
+.legacy .ep .bar{left:0;right:0}
+@media (max-width:860px){ .legacy .ep .thumb{height:58px;margin:0 10px} }
+
+/* ── full-screen player ── */
+.legacy .pl,.legacy .pl video,.legacy .pl-center{top:0;right:0;bottom:0;left:0}
+.legacy .pl-top,.legacy .pl-bottom{left:0;right:0}
+.legacy .pl-top>*+*{-webkit-margin-start:14px}
+.legacy .pl-ic{display:-webkit-inline-flex;display:inline-flex;-webkit-flex-direction:column;flex-direction:column;-webkit-align-items:center;align-items:center;-webkit-justify-content:center;justify-content:center;vertical-align:middle}
+.legacy .pl-progress>*+*{margin-left:12px}
+.legacy .pl-controls>*+*{-webkit-margin-start:4px}
+.legacy .pl-center{display:-webkit-flex;display:flex;-webkit-align-items:center;align-items:center;-webkit-justify-content:center;justify-content:center}
+.legacy .pl-msg{max-width:520px}
+.legacy .pl-msg .row{-webkit-justify-content:center;justify-content:center}
+.legacy .pl-drawer{left:0;width:440px;max-width:92vw;border-right:1px solid var(--line)}
+.legacy .pl-drawer .head>*+*{-webkit-margin-start:10px}
+.legacy .pl-menu{left:22px;width:560px;max-width:92vw;display:-webkit-flex;display:flex;-webkit-flex-wrap:wrap;flex-wrap:wrap;padding:7px 9px}
+.legacy .pl-menu>*{-webkit-flex:1 0 150px;flex:1 0 150px;padding:7px}
+.legacy .pl-next{left:22px}
+.legacy .pl-next>*+*{-webkit-margin-start:14px}
+.legacy .pl-next .ring b{top:0;right:0;bottom:0;left:0;display:-webkit-flex;display:flex;-webkit-align-items:center;align-items:center;-webkit-justify-content:center;justify-content:center}
+@media (max-width:580px){ .legacy .pl-msg{max-width:90vw} }
+@media (max-width:860px){ .legacy .pl-menu,.legacy .pl-next{left:8px} }
+
+/* ── shared bits ── */
+.legacy .row{margin-bottom:-8px}
+.legacy .row>*{-webkit-margin-end:8px;margin-bottom:8px}
+.legacy .tabs>*+*{-webkit-margin-start:4px}
+.legacy .lst>*+*{-webkit-margin-start:12px}
+.legacy .cred{display:-webkit-flex;display:flex;-webkit-flex-wrap:wrap;flex-wrap:wrap;-webkit-align-items:center;align-items:center}
+.legacy .cred dt{width:120px;margin-bottom:8px}
+.legacy .cred dd{width:calc(100% - 120px - 100px);margin:0 14px 8px;word-break:break-all}
+.legacy .cred button{width:72px;margin-bottom:8px}
+.legacy form.grid{display:-webkit-flex;display:flex;-webkit-flex-wrap:wrap;flex-wrap:wrap;-webkit-justify-content:space-between;justify-content:space-between}
+.legacy form.grid>*{width:calc(50% - 5px);margin-bottom:10px}
+.legacy form.grid>.full{width:100%}
+.legacy .signal>*+*{-webkit-margin-start:12px}
+.legacy .bars>*+*{-webkit-margin-start:3px}
+
+/* ── phones ── */
+@media (max-width:860px){
+  .legacy .top-in>*+*{-webkit-margin-start:10px}
+  .legacy .top-in>.search{top:10px;bottom:10px;left:var(--pad);right:var(--pad);width:auto;max-width:none;margin:0}
+  .legacy .top-in>#searchBtn{-webkit-margin-start:auto}
+  .legacy .tabbar{left:0;right:0;height:var(--tab-h)}
+  .legacy .tabbar a,.legacy .tabbar button{display:-webkit-flex;display:flex}
+  .legacy .tabbar svg{margin-bottom:3px}
+  .legacy main{padding-bottom:calc(var(--tab-h) + 28px)}
+  .legacy .cred dt{width:100%;margin-bottom:4px}
+  .legacy .cred dd{width:calc(100% - 86px);margin:0 0 8px 14px}
+  .legacy form.grid>*{width:100%}
+}

@@ -33,6 +33,11 @@ access and no provider account.
 - If you touched `scripts/install.sh` or `scripts/iptvhub`, run
   `shellcheck --severity=warning install.sh deploy.sh scripts/install.sh scripts/iptvhub`. CI runs
   the same command.
+- If you changed the script in `public/index.html`, run `npm run build:legacy` and
+  commit `public/legacy/app.js` with it; `npm test` fails until you do. The build
+  fetches esbuild through `npx`, so it needs network access the first time. The
+  bootstrap at the top of the page and `public/legacy/polyfills.js` stay plain ES5,
+  because Chrome 52 on Android TV boxes runs them as they are.
 - If you changed behaviour a player or an operator can see, add a line under
   `[Unreleased]` in [CHANGELOG.md](CHANGELOG.md).
 
@@ -64,7 +69,9 @@ that defeats de-duplication, add the raw names to `test/normalize.test.js` and f
   and no re-encode when a container swap or an audio conversion is enough.
 - **npm dependencies.** Node's built-ins cover HTTP, SQLite, tests and `fetch`. A
   dependency has to replace something genuinely hard to write, and so far nothing has.
-- **A build step for the web interface.** `public/index.html` is served as it is.
+- **A build step for the web interface.** `public/index.html` is served as it is. The
+  one compiled file, `public/legacy/app.js` for old browsers, is built ahead of time
+  and committed, so neither the server nor the Docker image builds anything.
 - **Reseller panel features** such as credits, sub-resellers or billing.
 - **Bundled playlists, provider lists or sample content** of any kind.
 - **Forcing player paths to HTTPS.** ExoPlayer-based players refuse a redirect from an

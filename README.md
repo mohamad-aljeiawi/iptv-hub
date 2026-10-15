@@ -263,6 +263,22 @@ home usable in 180 ms instead of 289, 9 images (25 KB) on first load instead of 
 (281 KB), and no slow frames while scrolling, before or after. The price is more layout
 work at load (189 ms instead of 122), for a page with more on it.
 
+### Old browsers and TV boxes
+
+The interface also works in old browsers, down to Chrome 52, which is still the
+built-in browser engine (WebView) on many Android 7 TV boxes. A modern browser runs the
+page as it is and downloads nothing extra. A browser without ES2021 fails a one-line
+feature test at the top of the page and loads `public/legacy/` instead: the same
+script compiled for Chrome 52, a few polyfills, and a stylesheet that replaces grid,
+`gap`, `aspect-ratio` and the other newer CSS with flexbox and fixed sizes. That is
+about 22 KB more (compressed), only on those devices, and served as static files.
+
+Checked in Chromium 52: home, the Films, Series and Live TV pages (chips and loading
+as you scroll), search, title details and episodes, settings, login, and the player up
+to the video itself, with hls.js fetching and converting the stream. Open-source
+Chromium cannot decode H.264 or AAC, so the picture and sound depend on the device's
+own decoders, as in any browser.
+
 ### The player
 
 A full-screen player in the style of Netflix, in Arabic and right to left:
@@ -364,6 +380,7 @@ The real `.env` holds your admin password and is never committed.
 | Image subtitles (PGS, DVD), common in Blu-ray rips, are not offered: showing them would mean burning them into a full re-encode | Use an external player, which shows them natively |
 | Watch history is per browser: a phone and a laptop each have their own, and clearing site data erases it | By design (nothing is stored on the server). "Copy share link" with `s`, `e` and `t` moves a position between devices by hand |
 | A link opened from Telegram may wait for one tap before sound plays: browsers block autoplay with sound until the visitor interacts | Tap the large play button |
+| Browsers older than Chrome 76 (the TV boxes' Chrome 52, for one) load every poster on the page at once instead of as they scroll into view | None needed on a TV box's connection; posters are small and cached by the server |
 | The installer targets apt-based systems (Ubuntu 22.04/24.04, Debian 12) | On other distributions, run `npm start` under your own service manager and proxy |
 
 ## Development
@@ -372,6 +389,7 @@ The real `.env` holds your admin password and is never committed.
 npm run dev     # auto-reload plus two mock Xtream servers ready to add
 npm test        # name cleaning, merging, search, redirects and in-browser playback
 npm run mocks   # just the mock servers
+npm run build:legacy   # after editing the page script: rebuild public/legacy/app.js
 ```
 
 The tests use throwaway databases and local mock servers. They need no network access
@@ -394,8 +412,10 @@ src/
   play.js       in-browser playback: ffprobe, ffmpeg tiers, sessions and limits
   api.js        web UI and admin API
   http.js       HTTP helpers, router and response cache
-public/         the web interface (one HTML file, no build step)
-scripts/        install.sh, the iptvhub CLI, nginx/caddy/systemd templates
+public/         the web interface: index.html, served as it is
+  legacy/       the fallback for old browsers (app.js is generated, do not edit)
+scripts/        install.sh, the iptvhub CLI, nginx/caddy/systemd templates,
+                build-legacy.mjs
 deploy.sh       Docker deployment (with Dockerfile and compose.yml)
 test/           mock-xtream.js plus node:test suites
 ```
