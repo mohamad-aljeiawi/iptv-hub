@@ -16,8 +16,8 @@
    that hover, and off-screen shelves skip rendering (content-visibility). */
 :root{
   --bg:#07090f; --bg2:#0c1018; --surface:#131925; --surface2:#1b2231; --line:rgba(255,255,255,.08); --line2:rgba(255,255,255,.15);
-  --text:#f1f4f9; --muted:#9aa4b8; --dim:#626d83; --accent:#ffb547; --accent2:#ff7a45; --live:#ff4d5e;
-  --grad:linear-gradient(135deg,var(--accent),var(--accent2));
+  --text:#f1f4f9; --muted:#9aa4b8; --dim:#626d83; --accent:#4cc98a; --accent2:#0f6b3c; --live:#ff4d5e;
+  --grad:linear-gradient(135deg,#1c8f52,var(--accent2));
   --r-sm:8px; --r:12px; --r-lg:18px; --nav-h:64px; --tab-h:62px; --pad:clamp(16px,4vw,48px);
   /* Older names, still used by the player and dialogs. */
   --ink:var(--bg); --panel:var(--surface); --panel2:var(--surface2); --signal:var(--accent);
@@ -26,7 +26,7 @@
 *{box-sizing:border-box}
 html{-webkit-text-size-adjust:100%}
 html,body{margin:0;color:var(--text);font-family:"Readex Pro",system-ui,sans-serif;font-size:16px;line-height:1.55}
-body{background:radial-gradient(1100px 520px at 90% -12%,rgba(255,138,60,.09),transparent 62%),var(--bg);min-height:100vh;-webkit-tap-highlight-color:transparent}
+body{background:radial-gradient(1100px 520px at 90% -12%,rgba(40,170,100,.08),transparent 62%),var(--bg);min-height:100vh;-webkit-tap-highlight-color:transparent}
 button,input,select{font:inherit;color:inherit}
 a{color:inherit}
 :focus-visible{outline:2px solid var(--accent);outline-offset:2px}
@@ -34,8 +34,8 @@ a{color:inherit}
 svg{display:block}
 
 /* ── buttons ── */
-.primary{display:inline-flex;align-items:center;justify-content:center;gap:8px;background:var(--grad);color:#1d1100;border:0;border-radius:999px;padding:10px 22px;
-  font-weight:700;cursor:pointer;box-shadow:0 8px 22px -10px rgba(255,130,60,.7);transition:transform .15s ease}
+.primary{display:inline-flex;align-items:center;justify-content:center;gap:8px;background:var(--grad);color:#fff;border:0;border-radius:999px;padding:10px 22px;
+  font-weight:700;cursor:pointer;box-shadow:0 8px 22px -10px rgba(20,120,70,.7);transition:transform .15s ease}
 .primary:active{transform:scale(.97)}
 .ghost{display:inline-flex;align-items:center;gap:8px;background:rgba(255,255,255,.08);border:1px solid var(--line2);color:var(--text);border-radius:999px;padding:9px 20px;cursor:pointer;transition:background .15s}
 .ghost:hover{background:rgba(255,255,255,.14)}
@@ -48,7 +48,7 @@ svg{display:block}
 .top{position:sticky;top:0;z-index:20;background:rgba(7,9,15,.94);border-bottom:1px solid var(--line)}
 .top-in{max-width:1440px;margin:0 auto;height:var(--nav-h);display:flex;align-items:center;gap:20px;padding-inline:var(--pad)}
 .logo{display:flex;align-items:center;gap:10px;font-weight:700;font-size:1.12rem;text-decoration:none;white-space:nowrap}
-.logo-mark{width:32px;height:32px;border-radius:10px;background:var(--grad);display:grid;place-items:center;color:#1d1100;font-size:.8rem}
+.logo-mark{width:32px;height:32px;border-radius:10px;background:var(--grad);display:grid;place-items:center;color:#fff;font-size:.8rem}
 .logo b{color:var(--accent)}
 .nav{display:flex;gap:2px}
 .nav a{color:var(--muted);text-decoration:none;padding:8px 14px;border-radius:999px;font-size:.94rem;transition:color .15s,background .15s}
@@ -76,14 +76,14 @@ main>*{animation:fade .25s ease-out}
 /* ── home: featured hero ── */
 .hero{position:relative;margin:20px 0 6px;border-radius:var(--r-lg);overflow:hidden;min-height:clamp(300px,40vw,470px);background:var(--bg2);isolation:isolate}
 .slide{position:absolute;inset:0;display:flex;align-items:flex-end;opacity:0;transition:opacity .7s ease;pointer-events:none;
-  background:radial-gradient(90% 130% at 0% 50%,hsl(var(--h) 60% 24% / .9),transparent 70%),radial-gradient(70% 90% at 100% 100%,rgba(255,122,69,.12),transparent 70%),var(--bg2)}
+  background:radial-gradient(90% 130% at 0% 50%,hsl(var(--h) 60% 24% / .9),transparent 70%),radial-gradient(70% 90% at 100% 100%,rgba(40,170,100,.12),transparent 70%),var(--bg2)}
 .slide.on{opacity:1;pointer-events:auto}
 .slide:not(.on):not(.out){content-visibility:hidden}
 .hero-art{position:absolute;inset-block:0;inset-inline-end:0;width:min(44%,400px);height:100%;object-fit:cover;
   /* RTL: the poster sits on the left and fades out towards the text on its right. */
   -webkit-mask-image:linear-gradient(to right,#000 40%,transparent);mask-image:linear-gradient(to right,#000 40%,transparent)}
 .hero-in{position:relative;z-index:1;padding:clamp(22px,4vw,52px);max-width:min(640px,62%)}
-.kicker{display:inline-flex;align-items:center;gap:6px;font-size:.76rem;font-weight:500;color:var(--accent);background:rgba(255,181,71,.12);border:1px solid rgba(255,181,71,.28);border-radius:999px;padding:3px 11px;margin-bottom:14px}
+.kicker{display:inline-flex;align-items:center;gap:6px;font-size:.76rem;font-weight:500;color:var(--accent);background:rgba(76,201,138,.12);border:1px solid rgba(76,201,138,.28);border-radius:999px;padding:3px 11px;margin-bottom:14px}
 .hero h1{font-size:clamp(1.7rem,4.4vw,3.2rem);line-height:1.12;margin:0 0 10px;font-weight:700;letter-spacing:-.01em}
 .hero-meta{color:#c9d1e0;margin:0 0 20px;font-size:.95rem}
 .hero-dots{position:absolute;bottom:18px;inset-inline-end:22px;z-index:2;display:flex;gap:6px}
@@ -217,7 +217,7 @@ h4{font-weight:500;margin:22px 0 10px;font-size:.92rem;color:var(--muted)}
 .ep-list{display:flex;flex-direction:column;gap:6px;margin-top:14px}
 .ep{display:grid;grid-template-columns:auto 132px 1fr;gap:14px;align-items:center;text-align:start;background:none;border:1px solid transparent;border-radius:var(--r);padding:8px;cursor:pointer;color:inherit;transition:background .15s}
 .ep:hover{background:rgba(255,255,255,.05)}
-.ep[aria-current=true]{border-color:rgba(255,181,71,.6);background:rgba(255,181,71,.07)}
+.ep[aria-current=true]{border-color:rgba(76,201,138,.6);background:rgba(76,201,138,.07)}
 .ep .n{color:var(--dim);font-size:1.2rem;font-weight:700;min-width:1.6em;text-align:center}
 .ep .thumb{position:relative;width:132px;aspect-ratio:16/9;border-radius:8px;overflow:hidden;background:var(--bg2)}
 .ep .thumb img{width:100%;height:100%;object-fit:cover;display:block}
@@ -266,7 +266,7 @@ h4{font-weight:500;margin:22px 0 10px;font-size:.92rem;color:var(--muted)}
 .pl-next .ring{position:relative;width:52px;height:52px;flex:none}
 .pl-next .ring svg{transform:rotate(-90deg)}
 .pl-next .ring b{position:absolute;inset:0;display:grid;place-items:center;font-size:1.1rem}
-.pl-next .go{background:var(--grad)!important;color:#1d1100!important;border-radius:999px;padding:9px 18px!important;font-weight:700!important}
+.pl-next .go{background:var(--grad)!important;color:#fff!important;border-radius:999px;padding:9px 18px!important;font-weight:700!important}
 .pl-next .sub{color:#c8d2de}
 
 /* ── shared bits ── */
@@ -351,7 +351,7 @@ form .full{grid-column:1/-1}
 <script>
 (function () {
   try { new Function('var a = {}; a.b ??= a?.c; (async function () { await 0; })'); return; } catch (e) { /* old browser */ }
-  var version = 'fcd3b82fc1ac'; // set by scripts/build-legacy.mjs
+  var version = '9d03eecd2e11'; // set by scripts/build-legacy.mjs
   var d = document;
   d.documentElement.className += ' legacy';
   var css = d.createElement('link');
@@ -489,7 +489,7 @@ form .full{grid-column:1/-1}
   <div class="pl-menu" id="plMenu" hidden></div>
   <!-- Next episode countdown -->
   <div class="pl-next" id="plNextCard" hidden>
-    <div class="ring"><svg width="52" height="52"><circle cx="26" cy="26" r="22" fill="none" stroke="rgba(255,255,255,.2)" stroke-width="4"/><circle id="plRing" cx="26" cy="26" r="22" fill="none" stroke="#FFB547" stroke-width="4" stroke-dasharray="138.2" stroke-dashoffset="0"/></svg><b id="plCount">5</b></div>
+    <div class="ring"><svg width="52" height="52"><circle cx="26" cy="26" r="22" fill="none" stroke="rgba(255,255,255,.2)" stroke-width="4"/><circle id="plRing" cx="26" cy="26" r="22" fill="none" stroke="#4CC98A" stroke-width="4" stroke-dasharray="138.2" stroke-dashoffset="0"/></svg><b id="plCount">5</b></div>
     <div><div class="sub" id="plNextLabel"></div>
       <div class="row" style="margin-top:8px"><button type="button" class="go" id="plNextGo">تشغيل الحلقة التالية</button><button type="button" id="plNextNo">مشاهدة الشارة</button></div></div>
   </div>

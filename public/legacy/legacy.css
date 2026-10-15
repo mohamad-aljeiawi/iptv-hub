@@ -33,7 +33,7 @@ html.legacy{--pad:4vw}
 
 /* ── home: featured hero ── */
 .legacy .slide{top:0;right:0;bottom:0;left:0;
-  background:radial-gradient(90% 130% at 0% 50%,hsla(var(--h),60%,24%,.9),transparent 70%),radial-gradient(70% 90% at 100% 100%,rgba(255,122,69,.12),transparent 70%),var(--bg2)}
+  background:radial-gradient(90% 130% at 0% 50%,hsla(var(--h),60%,24%,.9),transparent 70%),radial-gradient(70% 90% at 100% 100%,rgba(40,170,100,.12),transparent 70%),var(--bg2)}
 .legacy .hero-art{top:0;bottom:0;left:0}
 .legacy .kicker>*+*{-webkit-margin-start:6px}
 .legacy .hero-dots{left:22px}

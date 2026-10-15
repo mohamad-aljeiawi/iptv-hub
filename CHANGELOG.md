@@ -7,6 +7,11 @@ project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Changed
+
+- The interface accent is dark green instead of amber and orange: buttons on a deep green
+  gradient with white text, lighter green for highlights and progress bars.
+
 ## [2.6.0] - 2026-10-15
 
 ### Added
